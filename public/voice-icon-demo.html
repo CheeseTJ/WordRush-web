@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音色试听钮方案对比 · WordRush</title>
+<style>
+  :root {
+    --green: #58CC02; --green-l: #D7FFB8; --green-d: #47A302;
+    --yellow: #FFC800; --ink: #3C3C3A; --ink-soft: #8F8A7B;
+    --cream: #FFF6EA; --line: #E8DCC8;
+    --spr: cubic-bezier(.34,1.56,.64,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(160deg, #FFF6EA, #FDF0DC 55%, #F3EAD8);
+    min-height: 100vh; padding: 28px 16px 60px; color: var(--ink);
+  }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; }
+  .sub { text-align: center; font-size: 12.5px; color: var(--ink-soft); font-weight: 700; margin-bottom: 24px; }
+  .plan { max-width: 430px; margin: 0 auto 30px; }
+  .plan > h2 {
+    font-size: 14px; margin: 0 4px 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .plan > h2 .tag {
+    background: var(--green); color: #fff; font-size: 11px; border-radius: 8px; padding: 2px 8px;
+  }
+  .plan > .note { font-size: 12px; color: var(--ink-soft); margin: -4px 4px 10px; font-weight: 600; }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+
+  .book-item {
+    display: flex; align-items: center; gap: 12px;
+    border: 2px solid var(--line); border-radius: 18px;
+    background: var(--cream); padding: 12px 14px;
+    transition: border-color .2s, box-shadow .12s, background .2s;
+    position: relative;
+  }
+  .book-item.on { border-color: var(--green); box-shadow: 0 4px 0 var(--green-l); background: #fff; }
+  .bi-em { font-size: 22px; flex: 0 0 auto; }
+  .bi-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .bi-tx b { font-size: 15px; font-weight: 800; }
+  .bi-tx span { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); }
+
+  /* ===== 试听钮基础（粘土圆钮） ===== */
+  .voice-preview {
+    flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%;
+    display: grid; place-items: center; cursor: pointer; user-select: none;
+    transition: transform .12s var(--spr), box-shadow .12s;
+  }
+  .voice-preview:active { transform: translateY(3px) scale(.96); }
+  .vp-play { display: grid; place-items: center; }
+
+  /* 播放中声波柱（共用） */
+  .eq { display: flex; align-items: center; gap: 3px; height: 18px; }
+  .eq i { width: 4px; border-radius: 2px; background: #fff; transform-origin: center; animation: eqJump .55s ease-in-out infinite; }
+  .eq i:nth-child(2) { animation-delay: .14s; }
+  .eq i:nth-child(3) { animation-delay: .28s; }
+  @keyframes eqJump { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+
+  /* ===== 方案 A：钮右上角迷你对勾角标 ===== */
+  .vpA {
+    background: linear-gradient(180deg, #6FDB12, #4FB800);
+    box-shadow: 0 4px 0 #3D9402, inset 0 2px 0 rgba(255,255,255,.5), 0 8px 14px rgba(88,204,2,.3);
+  }
+  .vpA svg { filter: drop-shadow(0 1px 0 rgba(0,0,0,.18)); }
+  .vpA.playing { background: linear-gradient(180deg, #FFD54A, #FFC800); box-shadow: 0 4px 0 #D9A400, inset 0 2px 0 rgba(255,255,255,.5); }
+  .badge-check {
+    position: absolute; top: -5px; right: -5px; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--green); border: 2.5px solid #fff; color: #fff;
+    display: grid; place-items: center; font-size: 11px; font-weight: 900;
+    box-shadow: 0 2px 4px rgba(0,0,0,.18);
+  }
+  .wrapA { position: relative; margin-left: auto; }
+
+  /* ===== 方案 B：对勾在名字前，钮独占右侧 ===== */
+  .lead-check {
+    flex: 0 0 22px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--green); color: #fff; display: grid; place-items: center;
+    font-size: 12px; font-weight: 900; box-shadow: 0 2px 0 var(--green-d);
+  }
+  .vpB {
+    background: linear-gradient(180deg, #6FDB12, #4FB800);
+    box-shadow: 0 4px 0 #3D9402, inset 0 2px 0 rgba(255,255,255,.5), 0 8px 14px rgba(88,204,2,.3);
+  }
+  .vpB.playing { background: linear-gradient(180deg, #FFD54A, #FFC800); box-shadow: 0 4px 0 #D9A400, inset 0 2px 0 rgba(255,255,255,.5); }
+
+  /* ===== 方案 C：钮内图标双态（选中行钮内变对勾，深底更醒目） ===== */
+  .vpC {
+    background: linear-gradient(180deg, #6FDB12, #4FB800);
+    box-shadow: 0 4px 0 #3D9402, inset 0 2px 0 rgba(255,255,255,.5), 0 8px 14px rgba(88,204,2,.3);
+  }
+  .vpC.on-check { background: linear-gradient(180deg, #58CC02, #3D9402); }
+  .vpC.playing { background: linear-gradient(180deg, #FFD54A, #FFC800); box-shadow: 0 4px 0 #D9A400, inset 0 2px 0 rgba(255,255,255,.5); }
+
+  /* ===== 方案 D：深底反白大图标（对比度优先） ===== */
+  .vpD {
+    background: linear-gradient(180deg, #58CC02, #47A302);
+    box-shadow: 0 4px 0 #357F01, inset 0 2px 0 rgba(255,255,255,.4), 0 8px 14px rgba(0,0,0,.18);
+  }
+  .vpD.playing { background: linear-gradient(180deg, #FFC800, #F0A800); box-shadow: 0 4px 0 #C48F00, inset 0 2px 0 rgba(255,255,255,.4); }
+  .vpD svg { filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+  .check-pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 4px;
+    background: var(--green-l); color: #3E8A00; border-radius: 99px; padding: 4px 10px;
+    font-size: 11px; font-weight: 900;
+  }
+</style>
+</head>
+<body>
+<h1>🎵 音色试听钮 · 方案对比</h1>
+<div class="sub">每格三行：未选中 · 选中 · 播放中（动画为实时效果）</div>
+
+<!-- 方案 A -->
+<div class="plan">
+  <h2><span class="tag">A</span>对勾角标叠在钮上</h2>
+  <div class="note">钮永远在最右对称；选中态以右上角迷你对勾徽章表示</div>
+  <div class="stack">
+    <div class="book-item">
+      <span class="bi-em">🔉</span>
+      <div class="bi-tx"><b>Amy</b><span>温暖女声（美音）</span></div>
+      <div class="wrapA"><div class="voice-preview vpA vp-play"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19.2 12z" fill="#fff"/></svg></div></div>
+    </div>
+    <div class="book-item on">
+      <span class="bi-em">🔊</span>
+      <div class="bi-tx"><b>Amy</b><span>温暖女声（美音）</span></div>
+      <div class="wrapA">
+        <div class="voice-preview vpA vp-play"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19.2 12z" fill="#fff"/></svg></div>
+        <div class="badge-check">✓</div>
+      </div>
+    </div>
+    <div class="book-item on">
+      <span class="bi-em">🔊</span>
+      <div class="bi-tx"><b>Amy</b><span>播放中</span></div>
+      <div class="wrapA"><div class="voice-preview vpA playing"><span class="eq"><i></i><i></i><i></i></span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 B -->
+<div class="plan">
+  <h2><span class="tag">B</span>对勾移到行首，钮独占右缘</h2>
+  <div class="note">所有行右侧布局完全一致（对称）；选中态 = 行首绿勾圆徽</div>
+  <div class="stack">
+    <div class="book-item">
+      <span class="bi-em">🔉</span>
+      <div class="bi-tx"><b>Lessac</b><span>清晰女声（美音）</span></div>
+      <div class="voice-preview vpB vp-play"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19.2 12z" fill="#fff"/></svg></div>
+    </div>
+    <div class="book-item on">
+      <span class="lead-check">✓</span>
+      <div class="bi-tx"><b>Amy</b><span>温暖女声（美音）</span></div>
+      <div class="voice-preview vpB vp-play"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19.2 12z" fill="#fff"/></svg></div>
+    </div>
+    <div class="book-item on">
+      <span class="lead-check">✓</span>
+      <div class="bi-tx"><b>Amy</b><span>播放中</span></div>
+      <div class="voice-preview vpB playing"><span class="eq"><i></i><i></i><i></i></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 C -->
+<div class="plan">
+  <h2><span class="tag">C</span>钮内双态：选中行钮变深绿对勾</h2>
+  <div class="note">选中 = 钮内图标从三角换成对勾（仍可点试听）；右缘极简，无多余元素</div>
+  <div class="stack">
+    <div class="book-item">
+      <span class="bi-em">🔉</span>
+      <div class="bi-tx"><b>Lessac</b><span>清晰女声（美音）</span></div>
+      <div class="voice-preview vpC vp-play"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19.2 12z" fill="#fff"/></svg></div>
+    </div>
+    <div class="book-item on">
+      <span class="bi-em">🔊</span>
+      <div class="bi-tx"><b>Amy</b><span>温暖女声（美音）</span></div>
+      <div class="voice-preview vpC on-check vp-play"><svg width="19" height="19" viewBox="0 0 24 24"><path d="M4.5 12.5l5 5L19.5 7" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="book-item on">
+      <span class="bi-em">🔊</span>
+      <div class="bi-tx"><b>Amy</b><span>播放中</span></div>
+      <div class="voice-preview vpC playing"><span class="eq"><i></i><i></i><i></i></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 D -->
+<div class="plan">
+  <h2><span class="tag">D</span>深底反白大图标 + 「使用中」药丸</h2>
+  <div class="note">深绿底提高图标对比（清晰度优先）；选中态用行尾绿色「使用中」药丸标注</div>
+  <div class="stack">
+    <div class="book-item">
+      <span class="bi-em">🔉</span>
+      <div class="bi-tx"><b>Lessac</b><span>清晰女声（美音）</span></div>
+      <div class="voice-preview vpD vp-play"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19.2 12z" fill="#fff"/></svg></div>
+    </div>
+    <div class="book-item on">
+      <span class="bi-em">🔊</span>
+      <div class="bi-tx"><b>Amy</b><span>温暖女声（美音）</span></div>
+      <span class="check-pill">✓ 使用中</span>
+      <div class="voice-preview vpD vp-play"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19.2 12z" fill="#fff"/></svg></div>
+    </div>
+    <div class="book-item on">
+      <span class="bi-em">🔊</span>
+      <div class="bi-tx"><b>Amy</b><span>播放中</span></div>
+      <span class="check-pill">✓ 使用中</span>
+      <div class="voice-preview vpD playing"><span class="eq"><i></i><i></i><i></i></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="sub" style="margin-top:36px">选中项即采用；也可以混搭（如 A 的角标 + D 的深底钮）</div>
+</body>
+</html>

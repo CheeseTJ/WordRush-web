@@ -1217,8 +1217,15 @@ button:disabled {
   text-align: center;
   width: 100%;
   max-width: 320px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  /* 弹窗内部滚动条隐藏（触屏直接滑动） */
+  scrollbar-width: none;
   box-shadow: 0 14px 0 rgba(0, 0, 0, 0.1);
   animation: popIn 0.5s var(--spr);
+}
+.fill .box::-webkit-scrollbar {
+  display: none;
 }
 .fill h2 {
   font-family: 'Fredoka', sans-serif;

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BOOKS, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vocab'
-import { speakEnabled, setSpeakEnabled, currentVoice, setVoice, VOICE_OPTIONS } from '@/data/exp'
+import { currentVoice, setVoice, VOICE_OPTIONS } from '@/data/exp'
 import { previewVoice, resetSpeakCache } from '@/api/client'
 import { useApp } from '@/state/store'
 import { toast, confetti, buzz } from '@/ui'
@@ -10,11 +10,10 @@ const PETS = ['🐣', '🐤', '🦜', '🦉', '🐬']
 
 /** 我的页：头像、等级、徽章、词库选择（底部弹层） */
 export default function Me() {
-  const { profile, pending, refresh, doLogout } = useApp()
+  const { profile, refresh, doLogout } = useApp()
   const nav = useNavigate()
   const [bookId, setBookId] = useState(currentBookId())
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [speak, setSpeak] = useState(speakEnabled())
   const [voice, setVoiceId] = useState(currentVoice())
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [previewing, setPreviewing] = useState<string | null>(null)
@@ -99,25 +98,6 @@ export default function Me() {
               {activeBook.name} · {activeBook.words} 词 ›
             </span>
           </button>
-          <button
-            type="button"
-            className="rw"
-            onClick={() => {
-              const on = !speak
-              setSpeak(on)
-              setSpeakEnabled(on)
-              buzz(10)
-              toast(on ? '口语跟读已开启 🎙️' : '口语跟读已关闭')
-            }}
-          >
-            <div className="l">
-              <span className="ic" style={{ background: 'var(--pink-l, #FFE3EC)' }}>
-                🎙️
-              </span>
-              口语跟读 · 后端智能评分
-            </div>
-            <span className="arr">{speak ? '已开启 ✓' : '已关闭 ›'}</span>
-          </button>
           <button type="button" className="rw" onClick={() => setVoiceOpen(true)}>
             <div className="l">
               <span className="ic" style={{ background: 'var(--yellow-l, #FFF3D6)' }}>
@@ -128,19 +108,6 @@ export default function Me() {
             <span className="arr">
               {VOICE_OPTIONS.find((v) => v.id === voice)?.name ?? '默认'} ›
             </span>
-          </button>
-          <button
-            type="button"
-            className="rw"
-            onClick={() => toast(pending > 0 ? `${pending} 条离线成绩待同步` : '所有成绩已同步 ✓')}
-          >
-            <div className="l">
-              <span className="ic" style={{ background: 'var(--blue-l)' }}>
-                🔄
-              </span>
-              同步状态
-            </div>
-            <span className="arr">{pending > 0 ? `${pending} 条待同步 ›` : '已同步 ›'}</span>
           </button>
         </div>
 
