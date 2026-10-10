@@ -75,6 +75,8 @@ export default defineConfig({
   },
   server: {
     port: 5174,
+    // 允许通过 Cloudflare Tunnel 域名访问（手机真机验证）
+    allowedHosts: ['eng.taojun.top'],
     // 开发期把 /api 转发到本机 wordrush-api
     proxy: {
       '/api': {
