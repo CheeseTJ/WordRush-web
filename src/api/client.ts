@@ -239,12 +239,11 @@ function speakKey(text: string): string {
   return `${currentVoice()}|${text}`
 }
 
-/** 拉取某文本的发音 blobURL（缓存优先，不播放） */
-async function fetchSpeakUrl(text: string): Promise<string> {
-  const k = speakKey(text)
+/** 拉取某文本的发音 blobURL（缓存优先，不播放；voice 缺省用当前音色） */
+async function fetchSpeakUrl(text: string, voice = currentVoice()): Promise<string> {
+  const k = `${voice}|${text}`
   const cached = speakCache.get(k)
   if (cached && cached !== 'pending') return cached
-  const voice = currentVoice()
   const qs = voice ? `&voice=${encodeURIComponent(voice)}` : ''
   const blob = await authFetch<Blob>(`/api/v1/speak/tts?text=${encodeURIComponent(text)}${qs}`, { blob: true })
   const url = URL.createObjectURL(blob)
@@ -256,6 +255,17 @@ async function fetchSpeakUrl(text: string): Promise<string> {
 export async function speakWord(text: string): Promise<void> {
   const url = await fetchSpeakUrl(text)
   await new Audio(url).play()
+}
+
+/** 试听指定音色（音色弹层用）：播一句固定样例，播完才 resolve */
+export async function previewVoice(voice: string): Promise<void> {
+  const url = await fetchSpeakUrl('Hello! Let\'s learn English together.', voice)
+  await new Promise<void>((resolve, reject) => {
+    const a = new Audio(url)
+    a.onended = () => resolve()
+    a.onerror = () => reject(new Error('播放失败'))
+    a.play().catch(reject)
+  })
 }
 
 /** 进关预取：后台拉取一批发音（不播放），点按时即点即播 */

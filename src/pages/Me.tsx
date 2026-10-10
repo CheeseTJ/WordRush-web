@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BOOKS, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vocab'
 import { speakEnabled, setSpeakEnabled, currentVoice, setVoice, VOICE_OPTIONS } from '@/data/exp'
-import { resetSpeakCache } from '@/api/client'
+import { previewVoice, resetSpeakCache } from '@/api/client'
 import { useApp } from '@/state/store'
 import { toast, confetti, buzz } from '@/ui'
 
@@ -17,7 +17,21 @@ export default function Me() {
   const [speak, setSpeak] = useState(speakEnabled())
   const [voice, setVoiceId] = useState(currentVoice())
   const [voiceOpen, setVoiceOpen] = useState(false)
+  const [previewing, setPreviewing] = useState<string | null>(null)
   const activeBook = BOOKS.find((b) => b.id === bookId) ?? BOOKS[0]
+
+  async function preview(id: string) {
+    if (previewing) return
+    setPreviewing(id)
+    buzz(6)
+    try {
+      await previewVoice(id)
+    } catch {
+      toast('试听失败，请稍后重试')
+    } finally {
+      setPreviewing(null)
+    }
+  }
 
   function swapPet() {
     const av = document.querySelector('.avatar')
@@ -200,6 +214,17 @@ export default function Me() {
                   <span className="bi-tx">
                     <b>{v.name}</b>
                     <span>{v.desc}</span>
+                  </span>
+                  <span
+                    className={`voice-preview ${previewing === v.id ? 'playing' : ''}`}
+                    role="button"
+                    aria-label={`试听 ${v.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void preview(v.id)
+                    }}
+                  >
+                    {previewing === v.id ? '⏳' : '▶'}
                   </span>
                   {v.id === voice && <span className="bi-check">✓</span>}
                 </button>
