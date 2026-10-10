@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { findUnitSync, loadBook } from '@/data/vocab'
+import { findUnitSync, loadBook, findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
 import { useApp } from '@/state/store'
+import { fetchReviewQueue } from '@/api/client'
 import type { WordResult } from '@/api/client'
 import { confetti, toast, buzz } from '@/ui'
 
 /* ==================== 题型定义 ==================== */
 
-export type QType = 'en2zh' | 'zh2en' | 'listen' | 'spell' | 'match' | 'cloze'
+export type QType = 'en2zh' | 'zh2en' | 'listen' | 'spell' | 'match' | 'cloze' | 'chest'
 
 const TYPE_META: Record<QType, { icon: string; label: string }> = {
   en2zh: { icon: '📖', label: '选择释义' },
@@ -17,6 +18,7 @@ const TYPE_META: Record<QType, { icon: string; label: string }> = {
   spell: { icon: '⌨️', label: '拼写单词' },
   match: { icon: '🔗', label: '连连看' },
   cloze: { icon: '📝', label: '例句填空' },
+  chest: { icon: '🎁', label: '宝箱' },
 }
 
 interface QItem {
@@ -29,8 +31,10 @@ interface QItem {
   prompt?: string
   /** spell：乱序字母块（含干扰字母） */
   letters?: string[]
-  /** 计分题（match 不计分，纯强化屏） */
+  /** 计分题（match/chest 不计分，纯强化屏） */
   scored: boolean
+  /** 到期复习词混入的题（题面带角标） */
+  review?: boolean
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -78,7 +82,7 @@ function choiceOpts(correct: string, fakes: string[]): { t: string; ok: boolean 
  *   计分 9 题 = en2zh*2 + listen*2 + spell*2 + zh2en*2 + cloze*1（无例句降级 en2zh）
  *   强化 1 屏 = match 5 对（不计分，词记入 words[] 全部 ok）
  */
-function buildQuiz(words: Word[], chapterWords: Word[]): QItem[] {
+function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = []): QItem[] {
   const spellable = (w: Word) => /^[a-z]{3,12}$/.test(w.en)
   const pool = shuffle(words)
 
@@ -122,8 +126,26 @@ function buildQuiz(words: Word[], chapterWords: Word[]): QItem[] {
     }
   }
 
-  // match 屏：5 对 = 本关词（含未出独立题的），释义去重
-  const matchPool = shuffle(pool).filter((w, i, arr) => arr.findIndex((x) => x.zh === w.zh) === i)
+  // 到期复习词混入（<=3）：轻题型轮换，题面带「复习」角标——闯关即复习
+  const reviewTypes: QType[] = ['listen', 'en2zh', 'zh2en']
+  dueWords.slice(0, 3).forEach((w, i) => {
+    if (used.has(w.id)) return
+    const t = reviewTypes[i % reviewTypes.length]
+    if (t === 'listen') {
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en)).slice(0, 3).map((x) => x.en)
+      items.push({ type: 'listen', words: [w], opts: choiceOpts(w.en, fakes), scored: true, review: true })
+    } else if (t === 'zh2en') {
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en)).slice(0, 3).map((x) => x.en)
+      items.push({ type: 'zh2en', words: [w], opts: choiceOpts(w.en, fakes), scored: true, review: true })
+    } else {
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.zh !== w.zh)).slice(0, 3).map((x) => x.zh)
+      items.push({ type: 'en2zh', words: [w], opts: choiceOpts(w.zh, fakes), scored: true, review: true })
+    }
+    used.add(w.id)
+  })
+
+  // match 屏：5 对 = 本关词 + 到期词（含未出独立题的），释义去重
+  const matchPool = shuffle([...pool, ...dueWords]).filter((w, i, arr) => arr.findIndex((x) => x.zh === w.zh) === i)
   const matchWords = matchPool.slice(0, Math.min(5, matchPool.length))
   if (matchWords.length >= 3) {
     items.push({ type: 'match', words: matchWords, scored: false })
@@ -154,6 +176,10 @@ export default function Quiz() {
     setCorrect(0)
     setResults([])
     setDone(null)
+    replayRef.current = []
+    replayDoneRef.current = new Set()
+    chestGivenRef.current = false
+    chestPendingRef.current = false
     busyRef.current = false
 
     const sync = findUnitSync(unitId)
@@ -190,7 +216,25 @@ export default function Quiz() {
     }).catch(() => setChapterWords(words))
   }, [unitId, words])
 
-  const questions = useMemo(() => (words && chapterWords.length ? buildQuiz(words, chapterWords) : []), [words, chapterWords])
+  // 到期复习词（迭代二）：进关时拉取，混入新关
+  const [dueWords, setDueWords] = useState<Word[]>([])
+  useEffect(() => {
+    if (!unitId) return
+    let alive = true
+    fetchReviewQueue(3)
+      .then(async (ids) => {
+        const ws = (await Promise.all(ids.map((id) => findWordAsync(id)))).filter((w): w is Word => !!w)
+        if (alive) setDueWords(ws)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [unitId])
+
+  useEffect(() => {
+    if (words && chapterWords.length) setQuestions(buildQuiz(words, chapterWords, dueWords))
+  }, [words, chapterWords, dueWords])
 
   const [qi, setQi] = useState(0)
   const [picked, setPicked] = useState<number | null>(null)
@@ -198,6 +242,7 @@ export default function Quiz() {
   const [correct, setCorrect] = useState(0)
   const [results, setResults] = useState<WordResult[]>([])
   const [done, setDone] = useState<null | { stars: number; xp: number; queued: boolean }>(null)
+  const [questions, setQuestions] = useState<QItem[]>([])
   const busyRef = useRef(false)
 
   if (missing) {
@@ -219,6 +264,12 @@ export default function Quiz() {
   const screenTotal = questions.length
   const scoredTotal = questions.filter((x) => x.scored).length
 
+  // 关内自适应：错词关尾重现 / 连击宝箱
+  const replayRef = useRef<string[]>([])
+  const replayDoneRef = useRef<Set<string>>(new Set())
+  const chestPendingRef = useRef(false)
+  const chestGivenRef = useRef(false)
+
   /* ---------- 作答统一出口：ok + 该题产出的 words 结果 ---------- */
   function answer(ok: boolean, wordResults: WordResult[]) {
     if (busyRef.current) return
@@ -227,10 +278,19 @@ export default function Quiz() {
     setResults((r) => [...r, ...wordResults])
     if (ok) {
       setCorrect((c) => c + 1)
-      setCombo((c) => c + 1)
+      setCombo((c) => {
+        const n = c + 1
+        if (n === 5 && !chestGivenRef.current) {
+          chestGivenRef.current = true
+          chestPendingRef.current = true // 连击 5 里程碑：下一屏插宝箱
+        }
+        return n
+      })
       confetti(16, ['#58CC02', '#FFC800', '#1CB0F6'])
       buzz(12)
     } else {
+      // 错词进关尾重现队列（换题型补漏）
+      if (wordResults.length === 1) replayRef.current.push(wordResults[0].id)
       setCombo(0)
       buzz([26, 44, 26])
       document.querySelector('.app')?.classList.add('shakeit')
@@ -249,11 +309,42 @@ export default function Quiz() {
   function next() {
     busyRef.current = false
     if (qi + 1 >= screenTotal) {
+      // 关尾：错词变体重现（每词一次）后再结算
+      const pendingId = replayRef.current.shift()
+      if (pendingId && !replayDoneRef.current.has(pendingId)) {
+        replayDoneRef.current.add(pendingId)
+        const w = questions.find((x) => x.words.some((y) => y.id === pendingId))?.words[0] ??
+          chapterWords.find((y) => y.id === pendingId)
+        if (w) {
+          const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.zh !== w.zh)).slice(0, 3).map((x) => x.zh)
+          const item: QItem = {
+            type: 'en2zh',
+            words: [w],
+            opts: choiceOpts(w.zh, fakes),
+            scored: true,
+            review: true,
+          }
+          setQuestions((qs) => [...qs, item])
+          setQi((x) => x + 1)
+          setPicked(null)
+          toast('再来一道，加深印象 💪')
+          return
+        }
+      }
       void finish()
-    } else {
-      setQi((x) => x + 1)
-      setPicked(null)
+      return
     }
+    // 连击宝箱：插一屏免答庆祝
+    if (chestPendingRef.current) {
+      chestPendingRef.current = false
+      setQuestions((qs) => {
+        const cp = [...qs]
+        cp.splice(qi + 1, 0, { type: 'chest', words: [], scored: false })
+        return cp
+      })
+    }
+    setQi((x) => x + 1)
+    setPicked(null)
   }
 
   async function finish() {
@@ -279,6 +370,11 @@ export default function Quiz() {
     setCorrect(0)
     setResults([])
     setDone(null)
+    replayRef.current = []
+    replayDoneRef.current = new Set()
+    chestGivenRef.current = false
+    chestPendingRef.current = false
+    if (words && chapterWords.length) setQuestions(buildQuiz(words, chapterWords, dueWords))
     busyRef.current = false
   }
 
@@ -298,7 +394,9 @@ export default function Quiz() {
         </div>
 
         {/* 题干区：按题型分发 */}
-        {q.type === 'spell' ? (
+        {q.type === 'chest' ? (
+          <ChestCard key={qi} onDone={next} />
+        ) : q.type === 'spell' ? (
           <SpellCard key={qi} word={q.words[0]} letters={q.letters!} onAnswer={answer} locked={picked !== null} />
         ) : q.type === 'match' ? (
           <MatchCard key={qi} words={q.words} onAnswer={answer} locked={picked !== null} />
@@ -307,6 +405,7 @@ export default function Quiz() {
             <div className="qcard">
               <div className="qtag">
                 <span className="qtype-badge">{meta.icon} {meta.label}</span>
+                {q.review && <span className="review-badge">🔁 复习</span>}
               </div>
               {q.type === 'listen' && <ListenPrompt word={q.words[0]} autoPlay />}
               {q.type === 'cloze' ? (
@@ -615,6 +714,23 @@ function MatchCard({
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+/** chest：连击里程碑宝箱——免答庆祝屏，自动通过 */
+function ChestCard({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    confetti(26, ['#FFC800', '#FF9600', '#58CC02'])
+    buzz(20)
+    const t = setTimeout(onDone, 1600)
+    return () => clearTimeout(t)
+  }, [onDone])
+  return (
+    <div className="chest-wrap">
+      <div className="chest-emoji">🎁</div>
+      <div className="chest-title">连击 x5 ！</div>
+      <div className="chest-sub">保持这个节奏～</div>
     </div>
   )
 }

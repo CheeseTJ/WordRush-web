@@ -74,7 +74,7 @@ export default function Review() {
   if (state === 'loading')
     return (
       <div className="view">
-        <div className="empty-tip">加载复习队列…</div>
+        <div className="empty-tip">拉取今日到期复习…</div>
       </div>
     )
 
@@ -82,7 +82,7 @@ export default function Review() {
     return (
       <div className="view">
         <div className="empty-tip">
-          📴 复习队列需要联网获取
+          📴 到期复习需要联网获取
           <br />
           闯关可以先去地图继续～
         </div>
@@ -93,9 +93,9 @@ export default function Review() {
     return (
       <div className="view">
         <div className="empty-tip">
-          🎉 暂无错题
+          🎉 今日复习已完成
           <br />
-          去闯关积累一些「待复习」吧
+          到期的词会按遗忘曲线出现在这里
         </div>
       </div>
     )
@@ -137,8 +137,8 @@ export default function Review() {
     <div className="view">
       <div className="revp">
         <div className="revhead stg" style={{ ['--d' as string]: 0 }}>
-          <b>错题闪卡</b>
-          <span>还剩 {queue.length - ri} 张 · 点卡片翻面</span>
+          <b>今日到期复习</b>
+          <span>还剩 {queue.length - ri} 词 · 点卡片翻面</span>
         </div>
         <div className="stack stg" style={{ ['--d' as string]: 1 }}>
           {ri + 2 < queue.length && <StaticCard word={queue[ri + 2]} cls="pos-third" />}

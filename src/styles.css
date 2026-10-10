@@ -1659,3 +1659,45 @@ button:disabled {
   opacity: 0.55;
   pointer-events: none;
 }
+
+
+/* ---------- 迭代二 · 复习角标 / 宝箱屏 ---------- */
+.review-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFF3D6;
+  color: #B47B00;
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-left: 6px;
+}
+.chest-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: popIn 0.5s var(--spr);
+}
+.chest-emoji {
+  font-size: 96px;
+  line-height: 1;
+  animation: bob 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 16px 22px rgba(255, 150, 0, 0.35));
+}
+.chest-title {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  color: #FF9600;
+}
+.chest-sub {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
