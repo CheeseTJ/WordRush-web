@@ -182,29 +182,43 @@ export default function Me() {
                     <b>{v.name}</b>
                     <span>{v.desc}</span>
                   </span>
-                  <span
-                    className={`voice-preview ${previewing === v.id ? 'playing' : ''}`}
-                    role="button"
-                    aria-label={`试听 ${v.name}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (previewing) return
-                      void preview(v.id)
-                    }}
-                  >
-                    {previewing === v.id ? (
-                      <span className="eq" aria-hidden>
-                        <i />
-                        <i />
-                        <i />
-                      </span>
-                    ) : (
-                      <svg viewBox="0 0 24 24" width="17" height="17" aria-hidden>
-                        <path d="M8 5.2v13.6L19.2 12z" fill="#fff" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" />
+                  {v.id === voice ? (
+                    <span className="voice-check" aria-label="使用中">
+                      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
+                        <path
+                          d="M4.5 12.5l5 5L19.5 7"
+                          fill="none"
+                          stroke="#fff"
+                          strokeWidth="3.4"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
-                    )}
-                  </span>
-                  {v.id === voice && <span className="bi-check">✓</span>}
+                    </span>
+                  ) : (
+                    <span
+                      className={`voice-preview ${previewing === v.id ? 'playing' : ''}`}
+                      role="button"
+                      aria-label={`试听 ${v.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (previewing) return
+                        void preview(v.id)
+                      }}
+                    >
+                      {previewing === v.id ? (
+                        <span className="eq" aria-hidden>
+                          <i />
+                          <i />
+                          <i />
+                        </span>
+                      ) : (
+                        <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden>
+                          <path d="M8 5.2v13.6L19.2 12z" fill="#fff" />
+                        </svg>
+                      )}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

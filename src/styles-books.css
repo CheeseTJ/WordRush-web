@@ -60,7 +60,7 @@
   font-size: 16px;
 }
 
-/* 音色试听钮（粘土风）：绿色圆钮白三角，播放中变金 + 声波柱跳动 */
+/* 音色试听钮（粘土风）：深绿底反白三角（清晰度优先），播放中变金 + 声波柱跳动 */
 .book-item .voice-preview {
   margin-left: auto;
   flex: 0 0 42px;
@@ -69,18 +69,21 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(180deg, #8fe844, var(--green));
+  background: linear-gradient(180deg, #58cc02, #47a302);
   box-shadow:
-    0 4px 0 #47a302,
-    inset 0 2px 0 rgba(255, 255, 255, 0.45),
-    0 8px 16px rgba(88, 204, 2, 0.28);
+    0 4px 0 #357f01,
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    0 8px 16px rgba(0, 0, 0, 0.16);
   transition: transform 0.12s var(--spr), box-shadow 0.12s;
+}
+.book-item .voice-preview svg {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
 }
 .book-item .voice-preview:active {
   transform: translateY(2px);
   box-shadow:
-    0 2px 0 #47a302,
-    inset 0 2px 0 rgba(255, 255, 255, 0.45);
+    0 2px 0 #357f01,
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
 }
 .book-item .voice-preview.playing {
   background: linear-gradient(180deg, #ffd54a, #ffc800);
@@ -118,9 +121,22 @@
     transform: scaleY(1);
   }
 }
-.book-item.on .voice-preview {
-  margin-left: 0;
-}
-.book-item.on .voice-preview + .bi-check {
+
+/* 选中行右缘：对勾圆徽（与试听钮同位对称） */
+.book-item .voice-check {
   margin-left: auto;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #8fe844, var(--green));
+  box-shadow:
+    0 4px 0 #47a302,
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    0 8px 16px rgba(88, 204, 2, 0.28);
+}
+.book-item .voice-check svg {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.22));
 }
