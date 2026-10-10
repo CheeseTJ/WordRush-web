@@ -1466,3 +1466,196 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* ---------- 迭代一 · 新题型 ---------- */
+/* 题型徽标 */
+.qtype-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--green-l);
+  color: var(--green-d);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+/* listen：大播放键 */
+.listen-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 14px auto 4px;
+  border: 0;
+  background: var(--blue-l);
+  color: var(--blue);
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  font-size: 40px;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #cde9f8;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.listen-big:active {
+  transform: translateY(5px);
+  box-shadow: none;
+}
+.listen-big span {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* cloze：例句挖空 */
+.cloze-sentence {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.7;
+  color: var(--ink);
+  margin: 12px 0 4px;
+  text-align: left;
+}
+.cloze-sentence :not(span) {
+  word-break: break-word;
+}
+
+/* spell：中文提示 */
+.spell-zh {
+  font-size: 30px;
+}
+
+/* spell：字母槽与字母块 */
+.letter-slots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+.letter-slot {
+  width: 34px;
+  height: 42px;
+  border-radius: 10px;
+  border: 2px dashed var(--line);
+  display: grid;
+  place-items: center;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--cream);
+  transition: border-color 0.15s;
+}
+.letter-slot.filled {
+  border-style: solid;
+  border-color: var(--green);
+  background: var(--green-l);
+}
+.letter-slots.no .letter-slot {
+  border-color: var(--coral);
+  background: var(--coral-l);
+  animation: wobble 0.4s ease;
+}
+.letter-slots.ok .letter-slot {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+.letter-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.letter-tile {
+  width: 44px;
+  height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 0 var(--line), 0 10px 16px rgba(170, 140, 95, 0.14);
+  font-family: 'Fredoka', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s var(--spr), box-shadow 0.12s, opacity 0.15s;
+}
+.letter-tile:active {
+  transform: translateY(5px);
+  box-shadow: 0 0 0 var(--line);
+}
+.letter-tile.used {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* match：连连看 */
+.match-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+.match-head {
+  flex: 0 0 auto;
+}
+.match-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.match-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+  flex: 1;
+  align-content: start;
+}
+.match-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.match-cell {
+  border: 0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 0 var(--line), 0 10px 16px rgba(170, 140, 95, 0.14);
+  padding: 14px 12px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s var(--spr), box-shadow 0.12s, opacity 0.2s;
+  min-height: 52px;
+}
+.match-cell:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}
+.match-cell.sel {
+  background: var(--blue-l);
+  box-shadow: 0 5px 0 #cde9f8;
+  color: var(--blue-d);
+}
+.match-cell.no {
+  animation: wobble 0.4s ease;
+  background: var(--coral-l);
+}
+.match-cell.solved {
+  background: var(--green-l);
+  box-shadow: 0 5px 0 #c3e8a0;
+  opacity: 0.55;
+  pointer-events: none;
+}
