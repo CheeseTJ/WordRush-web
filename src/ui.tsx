@@ -43,6 +43,52 @@ export function buzz(pattern: number | number[]): void {
   }
 }
 
+/* ---------- 答题音效（Web Audio 现场合成，无外部资源） ---------- */
+
+let sfxCtx: AudioContext | undefined
+
+function sfxCtxGet(): AudioContext {
+  if (!sfxCtx) sfxCtx = new AudioContext()
+  if (sfxCtx.state === 'suspended') void sfxCtx.resume()
+  return sfxCtx
+}
+
+function tone(ctx: AudioContext, freq: number, start: number, dur: number, type: OscillatorType, vol: number): void {
+  const o = ctx.createOscillator()
+  const g = ctx.createGain()
+  o.type = type
+  o.frequency.value = freq
+  const t0 = ctx.currentTime + start
+  g.gain.setValueAtTime(vol, t0)
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur)
+  o.connect(g)
+  g.connect(ctx.destination)
+  o.start(t0)
+  o.stop(t0 + dur)
+}
+
+/** 答对：上行双音「叮-叮」 */
+export function sfxCorrect(): void {
+  try {
+    const c = sfxCtxGet()
+    tone(c, 660, 0, 0.1, 'sine', 0.16)
+    tone(c, 880, 0.08, 0.18, 'sine', 0.16)
+  } catch {
+    /* 音频不可用则静默 */
+  }
+}
+
+/** 答错：下行低鸣「噗-噗」 */
+export function sfxWrong(): void {
+  try {
+    const c = sfxCtxGet()
+    tone(c, 233, 0, 0.15, 'square', 0.07)
+    tone(c, 165, 0.11, 0.22, 'square', 0.07)
+  } catch {
+    /* 音频不可用则静默 */
+  }
+}
+
 export function Mascot({
   mood,
   onClick,

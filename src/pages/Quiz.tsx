@@ -7,7 +7,7 @@ import { assessSpeak, prefetchSpeak, speakWord } from '@/api/client'
 import { useApp } from '@/state/store'
 import { fetchReviewQueue } from '@/api/client'
 import type { WordResult } from '@/api/client'
-import { confetti, toast, buzz } from '@/ui'
+import { confetti, toast, buzz, sfxCorrect, sfxWrong } from '@/ui'
 
 /* ==================== 题型定义 ==================== */
 
@@ -40,13 +40,29 @@ interface QItem {
   review?: boolean
 }
 
-function shuffle<T>(arr: T[]): T[] {
+function shuffle<T>(arr: T[], rng: () => number = Math.random): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = Math.floor(rng() * (i + 1))
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
+}
+
+/** 由字符串种子生成确定性随机数（mulberry32）——同一关每次进题序一致 */
+function seededRng(seedStr: string): () => number {
+  let h = 1779033703 ^ seedStr.length
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353)
+    h = (h << 13) | (h >>> 19)
+  }
+  let s = h >>> 0
+  return () => {
+    s = (s + 0x6d2b79f5) | 0
+    let t = Math.imul(s ^ (s >>> 15), 1 | s)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
 }
 
 function starsOf(correct: number, total: number): number {
@@ -72,10 +88,10 @@ function clozeSentence(ex: string, en: string): string {
 }
 
 /** 四选一选项（正确项 + 3 干扰项） */
-function choiceOpts(correct: string, fakes: string[]): { t: string; ok: boolean }[] {
+function choiceOpts(correct: string, fakes: string[], rng: () => number = Math.random): { t: string; ok: boolean }[] {
   const uniq = [...new Set(fakes.filter((f) => f && f !== correct))].slice(0, 3)
   while (uniq.length < 3) uniq.push(['似是而非', '无从知晓', '扑朔迷离', '雾里看花'][uniq.length])
-  return shuffle([correct, ...uniq]).map((t) => ({ t, ok: t === correct }))
+  return shuffle([correct, ...uniq], rng).map((t) => ({ t, ok: t === correct }))
 }
 
 /* ==================== 出题工厂 ==================== */
@@ -85,9 +101,10 @@ function choiceOpts(correct: string, fakes: string[]): { t: string; ok: boolean 
  *   计分 9 题 = en2zh*2 + listen*2 + spell*2 + zh2en*2 + cloze*1（无例句降级 en2zh）
  *   强化 1 屏 = match 5 对（不计分，词记入 words[] 全部 ok）
  */
-function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = []): QItem[] {
+function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = [], seed = ''): QItem[] {
+  const rng = seededRng(seed || words[0]?.id || 'seed')
   const spellable = (w: Word) => /^[a-z]{3,12}$/.test(w.en)
-  const pool = shuffle(words)
+  const pool = shuffle(words, rng)
 
   // 题型槽位序列（按规划节奏表）
   const slots: QType[] = ['en2zh', 'en2zh', 'listen', 'listen', 'spell', 'spell', 'zh2en', 'zh2en', 'cloze']
@@ -110,22 +127,22 @@ function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = []): 
       const letters = w!.en.split('')
       const extra = 2
       const alphabet = 'abcdefghijklmnopqrstuvwxyz'
-      const noise = Array.from({ length: extra }, () => alphabet[Math.floor(Math.random() * 26)])
-      items.push({ type: 'spell', words: [w!], letters: shuffle([...letters, ...noise]), scored: true })
+      const noise = Array.from({ length: extra }, () => alphabet[Math.floor(rng() * 26)])
+      items.push({ type: 'spell', words: [w!], letters: shuffle([...letters, ...noise], rng), scored: true })
     } else if (finalType === 'listen') {
       // 听音选词：选项为单词
-      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en)).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'listen', words: [w!], opts: choiceOpts(w!.en, fakes), scored: true })
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en), rng).slice(0, 3).map((x) => x.en)
+      items.push({ type: 'listen', words: [w!], opts: choiceOpts(w!.en, fakes, rng), scored: true })
     } else if (finalType === 'cloze') {
       const ex = exHasWord(w!)!
-      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en)).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'cloze', words: [w!], prompt: clozeSentence(ex, w!.en), opts: choiceOpts(w!.en, fakes), scored: true })
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en), rng).slice(0, 3).map((x) => x.en)
+      items.push({ type: 'cloze', words: [w!], prompt: clozeSentence(ex, w!.en), opts: choiceOpts(w!.en, fakes, rng), scored: true })
     } else if (finalType === 'zh2en') {
-      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en)).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'zh2en', words: [w!], opts: choiceOpts(w!.en, fakes), scored: true })
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en), rng).slice(0, 3).map((x) => x.en)
+      items.push({ type: 'zh2en', words: [w!], opts: choiceOpts(w!.en, fakes, rng), scored: true })
     } else {
-      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.zh !== w!.zh)).slice(0, 3).map((x) => x.zh)
-      items.push({ type: 'en2zh', words: [w!], opts: choiceOpts(w!.zh, fakes), scored: true })
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.zh !== w!.zh), rng).slice(0, 3).map((x) => x.zh)
+      items.push({ type: 'en2zh', words: [w!], opts: choiceOpts(w!.zh, fakes, rng), scored: true })
     }
   }
 
@@ -135,19 +152,19 @@ function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = []): 
     if (used.has(w.id)) return
     const t = reviewTypes[i % reviewTypes.length]
     if (t === 'listen') {
-      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en)).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'listen', words: [w], opts: choiceOpts(w.en, fakes), scored: true, review: true })
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en), rng).slice(0, 3).map((x) => x.en)
+      items.push({ type: 'listen', words: [w], opts: choiceOpts(w.en, fakes, rng), scored: true, review: true })
     } else if (t === 'zh2en') {
-      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en)).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'zh2en', words: [w], opts: choiceOpts(w.en, fakes), scored: true, review: true })
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en), rng).slice(0, 3).map((x) => x.en)
+      items.push({ type: 'zh2en', words: [w], opts: choiceOpts(w.en, fakes, rng), scored: true, review: true })
     } else {
-      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.zh !== w.zh)).slice(0, 3).map((x) => x.zh)
-      items.push({ type: 'en2zh', words: [w], opts: choiceOpts(w.zh, fakes), scored: true, review: true })
+      const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.zh !== w.zh), rng).slice(0, 3).map((x) => x.zh)
+      items.push({ type: 'en2zh', words: [w], opts: choiceOpts(w.zh, fakes, rng), scored: true, review: true })
     }
     used.add(w.id)
   })
 
-  // 口语跟读（实验特性，默认关）：追加 1 题跟读
+  // 口语跟读（默认开）：追加 1 题跟读
   if (speakEnabled()) {
     const w = pool.find((x) => !used.has(x.id) && spellable(x))
     if (w) {
@@ -157,7 +174,7 @@ function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = []): 
   }
 
   // match 屏：5 对 = 本关词 + 到期词（含未出独立题的），释义去重
-  const matchPool = shuffle([...pool, ...dueWords]).filter((w, i, arr) => arr.findIndex((x) => x.zh === w.zh) === i)
+  const matchPool = shuffle([...pool, ...dueWords], rng).filter((w, i, arr) => arr.findIndex((x) => x.zh === w.zh) === i)
   const matchWords = matchPool.slice(0, Math.min(5, matchPool.length))
   if (matchWords.length >= 3) {
     items.push({ type: 'match', words: matchWords, scored: false })
@@ -250,7 +267,7 @@ export default function Quiz() {
 
   useEffect(() => {
     if (words && chapterWords.length) {
-      setQuestions(buildQuiz(words, chapterWords, dueWords))
+      setQuestions(buildQuiz(words, chapterWords, dueWords, unitId))
       // 发音预取（后端 TTS）：进关即拉本关 + 到期词，点按时零延迟
       prefetchSpeak([...words.map((w) => w.en), ...dueWords.map((w) => w.en)])
     }
@@ -306,11 +323,13 @@ export default function Quiz() {
         return n
       })
       confetti(16, ['#58CC02', '#FFC800', '#1CB0F6'])
+      sfxCorrect()
       buzz(12)
     } else {
       // 错词进关尾重现队列（换题型补漏）
       if (wordResults.length === 1) replayRef.current.push(wordResults[0].id)
       setCombo(0)
+      sfxWrong()
       buzz([26, 44, 26])
       document.querySelector('.app')?.classList.add('shakeit')
       setTimeout(() => document.querySelector('.app')?.classList.remove('shakeit'), 440)
@@ -413,7 +432,7 @@ export default function Quiz() {
     replayDoneRef.current = new Set()
     chestGivenRef.current = false
     chestPendingRef.current = false
-    if (words && chapterWords.length) setQuestions(buildQuiz(words, chapterWords, dueWords))
+    if (words && chapterWords.length) setQuestions(buildQuiz(words, chapterWords, dueWords, unitId))
     busyRef.current = false
   }
 

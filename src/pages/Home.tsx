@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '@/state/store'
 import { Sidebar } from '@/components/Sidebar'
 
@@ -25,58 +25,65 @@ function useTick(target: number): number {
   return shown
 }
 
-/** 应用壳：HUD + 主内容区 + 右侧信息栏（平板/桌面）+ dock（手机底部/桌面侧栏） */
+/** 应用壳：HUD + 主内容区 + 右侧信息栏（平板/桌面）+ dock（手机底部/桌面侧栏）
+ *  答题/情景对话页全屏沉浸：隐藏 HUD 与 dock */
 export default function Home() {
   const { profile, pending } = useApp()
   const nav = useNavigate()
+  const loc = useLocation()
+  const immersive = loc.pathname.startsWith('/quiz/') || loc.pathname.startsWith('/story/')
   const shownXp = useTick(profile.xp)
   const shownStreak = useTick(profile.streak_days)
   const hearts = profile.hearts ?? 5
 
   return (
     <div className="app">
-      <header className="hud stg" style={{ ['--d' as string]: 0 }}>
-        <button
-          type="button"
-          className="pill hearts"
-          title={hearts >= 5 ? '红心已满' : '每 30 分钟恢复 1 颗红心'}
-          onClick={() => nav('/map')}
-        >
-          <span>{hearts > 0 ? '❤️' : '💔'}</span>
-          <span className="num">{hearts}</span>/5
-        </button>
-        <button
-          type="button"
-          className="pill streak"
-          title="连续学习天数"
-          onClick={() => nav('/stats')}
-        >
-          <span>🔥</span>
-          <span className="num">{shownStreak}</span> 天
-        </button>
-        {pending > 0 && (
-          <span className="pill" title="有离线成绩待同步" style={{ color: 'var(--coral-d)' }}>
-            <span className="pending-dot" /> {pending}
+      {!immersive && (
+        <header className="hud stg" style={{ ['--d' as string]: 0 }}>
+          <button
+            type="button"
+            className="pill hearts"
+            title={hearts >= 5 ? '红心已满' : '每 30 分钟恢复 1 颗红心'}
+            onClick={() => nav('/map')}
+          >
+            <span>{hearts > 0 ? '❤️' : '💔'}</span>
+            <span className="num">{hearts}</span>/5
+          </button>
+          <button
+            type="button"
+            className="pill streak"
+            title="连续学习天数"
+            onClick={() => nav('/stats')}
+          >
+            <span>🔥</span>
+            <span className="num">{shownStreak}</span> 天
+          </button>
+          {pending > 0 && (
+            <span className="pill" title="有离线成绩待同步" style={{ color: 'var(--coral-d)' }}>
+              <span className="pending-dot" /> {pending}
+            </span>
+          )}
+          <span className="pill xp">
+            <span>⚡</span>
+            <span className="num">{shownXp}</span> XP
           </span>
-        )}
-        <span className="pill xp">
-          <span>⚡</span>
-          <span className="num">{shownXp}</span> XP
-        </span>
-      </header>
+        </header>
+      )}
 
       <div className="main-area">
         <Outlet />
       </div>
 
-      <Sidebar />
+      {!immersive && <Sidebar />}
 
-      <nav className="dock stg" style={{ ['--d' as string]: 3 }}>
-        <DockLink to="/map" icon="🏠" label="学习" />
-        <DockLink to="/review" icon="💪" label="复习" />
-        <DockLink to="/stats" icon="📊" label="统计" />
-        <DockLink to="/me" icon="👤" label="我的" />
-      </nav>
+      {!immersive && (
+        <nav className="dock stg" style={{ ['--d' as string]: 3 }}>
+          <DockLink to="/map" icon="🏠" label="学习" />
+          <DockLink to="/review" icon="💪" label="复习" />
+          <DockLink to="/stats" icon="📊" label="统计" />
+          <DockLink to="/me" icon="👤" label="我的" />
+        </nav>
+      )}
       <div className="toast" id="toast" />
     </div>
   )

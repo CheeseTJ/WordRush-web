@@ -251,10 +251,21 @@ async function fetchSpeakUrl(text: string, voice = currentVoice()): Promise<stri
   return url
 }
 
-/** 拉取并播放单词发音（按当前音色）；失败抛错由调用方提示 */
+/** 拉取并播放单词发音（按当前音色）；失败抛错由调用方提示。
+ * 全局单例播放器：新发音先停旧的，避免快速连点叠加多个音频源。 */
+let speakAudio: HTMLAudioElement | null = null
+
 export async function speakWord(text: string): Promise<void> {
   const url = await fetchSpeakUrl(text)
-  await new Audio(url).play()
+  if (speakAudio && !speakAudio.paused) {
+    speakAudio.pause()
+  }
+  if (!speakAudio || speakAudio.src !== url) {
+    speakAudio = new Audio(url)
+  } else {
+    speakAudio.currentTime = 0
+  }
+  await speakAudio.play()
 }
 
 /** 试听指定音色（音色弹层用）：播放打包进前端的预合成样例，秒播，播完才 resolve */
