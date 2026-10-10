@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BOOKS, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vocab'
-import { speakEnabled, setSpeakEnabled } from '@/data/exp'
+import { speakEnabled, setSpeakEnabled, currentVoice, setVoice, VOICE_OPTIONS } from '@/data/exp'
+import { resetSpeakCache } from '@/api/client'
 import { useApp } from '@/state/store'
 import { toast, confetti, buzz } from '@/ui'
 
@@ -14,6 +15,8 @@ export default function Me() {
   const [bookId, setBookId] = useState(currentBookId())
   const [pickerOpen, setPickerOpen] = useState(false)
   const [speak, setSpeak] = useState(speakEnabled())
+  const [voice, setVoiceId] = useState(currentVoice())
+  const [voiceOpen, setVoiceOpen] = useState(false)
   const activeBook = BOOKS.find((b) => b.id === bookId) ?? BOOKS[0]
 
   function swapPet() {
@@ -101,6 +104,17 @@ export default function Me() {
             </div>
             <span className="arr">{speak ? '已开启 ✓' : '已关闭 ›'}</span>
           </button>
+          <button type="button" className="rw" onClick={() => setVoiceOpen(true)}>
+            <div className="l">
+              <span className="ic" style={{ background: 'var(--yellow-l, #FFF3D6)' }}>
+                🔊
+              </span>
+              发音音色
+            </div>
+            <span className="arr">
+              {VOICE_OPTIONS.find((v) => v.id === voice)?.name ?? '默认'} ›
+            </span>
+          </button>
           <button
             type="button"
             className="rw"
@@ -155,6 +169,43 @@ export default function Me() {
               ))}
             </div>
             <button type="button" className="btn alt" onClick={() => setPickerOpen(false)}>
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+      {voiceOpen && (
+        <div className="fill" onClick={(e) => e.target === e.currentTarget && setVoiceOpen(false)}>
+          <div className="box" style={{ textAlign: 'left' }}>
+            <h2 style={{ textAlign: 'center' }}>发音音色</h2>
+            <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-soft)', marginTop: -4 }}>
+              换新音色后首次发音需要几秒准备
+            </p>
+            <div className="book-list">
+              {VOICE_OPTIONS.map((v) => (
+                <button
+                  key={v.id || 'default'}
+                  type="button"
+                  className={`book-item ${v.id === voice ? 'on' : ''}`}
+                  onClick={() => {
+                    setVoice(v.id)
+                    setVoiceId(v.id)
+                    resetSpeakCache()
+                    setVoiceOpen(false)
+                    buzz(10)
+                    toast(`音色已切换为 ${v.name} 🔊`)
+                  }}
+                >
+                  <span className="bi-em">{v.id === voice ? '🔊' : '🔉'}</span>
+                  <span className="bi-tx">
+                    <b>{v.name}</b>
+                    <span>{v.desc}</span>
+                  </span>
+                  {v.id === voice && <span className="bi-check">✓</span>}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="btn alt" onClick={() => setVoiceOpen(false)}>
               取消
             </button>
           </div>

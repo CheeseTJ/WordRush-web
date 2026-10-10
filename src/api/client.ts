@@ -7,6 +7,7 @@
  */
 
 import { authFetch } from './ucenter'
+import { currentVoice } from '@/data/exp'
 
 export interface Profile {
   xp: number
@@ -223,27 +224,47 @@ export async function assessSpeak(word: string, blob: Blob): Promise<SpeakAssess
 
 /* ---------- 发音 TTS（后端 piper 合成，磁盘缓存） ---------- */
 
-// 会话级音频缓存：text → blobURL（后端另有磁盘缓存兜底）
+// 会话级音频缓存：key = voice|text → blobURL（后端另有磁盘缓存兜底）
 const speakCache = new Map<string, string>()
 
-/** 拉取并播放单词发音；失败抛错由调用方提示 */
-export async function speakWord(text: string): Promise<void> {
-  let url = speakCache.get(text)
-  if (!url || url === 'pending') {
-    const blob = await authFetch<Blob>(`/api/v1/speak/tts?text=${encodeURIComponent(text)}`, { blob: true })
-    url = URL.createObjectURL(blob)
-    speakCache.set(text, url)
+/** 清空发音缓存（切换音色后调用，避免播到旧音色） */
+export function resetSpeakCache(): void {
+  for (const url of speakCache.values()) {
+    if (url.startsWith('blob:')) URL.revokeObjectURL(url)
   }
+  speakCache.clear()
+}
+
+function speakKey(text: string): string {
+  return `${currentVoice()}|${text}`
+}
+
+/** 拉取某文本的发音 blobURL（缓存优先，不播放） */
+async function fetchSpeakUrl(text: string): Promise<string> {
+  const k = speakKey(text)
+  const cached = speakCache.get(k)
+  if (cached && cached !== 'pending') return cached
+  const voice = currentVoice()
+  const qs = voice ? `&voice=${encodeURIComponent(voice)}` : ''
+  const blob = await authFetch<Blob>(`/api/v1/speak/tts?text=${encodeURIComponent(text)}${qs}`, { blob: true })
+  const url = URL.createObjectURL(blob)
+  speakCache.set(k, url)
+  return url
+}
+
+/** 拉取并播放单词发音（按当前音色）；失败抛错由调用方提示 */
+export async function speakWord(text: string): Promise<void> {
+  const url = await fetchSpeakUrl(text)
   await new Audio(url).play()
 }
 
-/** 进关预取：后台拉取一批发音，点按时即点即播 */
+/** 进关预取：后台拉取一批发音（不播放），点按时即点即播 */
 export function prefetchSpeak(texts: string[]): void {
   for (const t of texts) {
-    if (!t || speakCache.has(t)) continue
-    speakCache.set(t, 'pending')
-    authFetch<Blob>(`/api/v1/speak/tts?text=${encodeURIComponent(t)}`, { blob: true })
-      .then((b) => speakCache.set(t, URL.createObjectURL(b)))
-      .catch(() => speakCache.delete(t)) // 预取失败静默，真正播放时会重试并暴露错误
+    if (!t || speakCache.get(speakKey(t))) continue
+    const k = speakKey(t)
+    speakCache.set(k, 'pending')
+    fetchSpeakUrl(t)
+      .catch(() => speakCache.delete(k)) // 预取失败静默，真正播放时会重试并暴露错误
   }
 }
