@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { findUnitSync, loadBook, findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
 import { speakEnabled } from '@/data/exp'
-import { assessSpeak } from '@/api/client'
+import { assessSpeak, prefetchSpeak, speakWord } from '@/api/client'
 import { useApp } from '@/state/store'
 import { fetchReviewQueue } from '@/api/client'
 import type { WordResult } from '@/api/client'
@@ -249,7 +249,11 @@ export default function Quiz() {
   }, [unitId])
 
   useEffect(() => {
-    if (words && chapterWords.length) setQuestions(buildQuiz(words, chapterWords, dueWords))
+    if (words && chapterWords.length) {
+      setQuestions(buildQuiz(words, chapterWords, dueWords))
+      // 发音预取（后端 TTS）：进关即拉本关 + 到期词，点按时零延迟
+      prefetchSpeak([...words.map((w) => w.en), ...dueWords.map((w) => w.en)])
+    }
   }, [words, chapterWords, dueWords])
 
   const [qi, setQi] = useState(0)
@@ -935,13 +939,5 @@ function ChestCard({ onDone }: { onDone: () => void }) {
 }
 
 function speak(text: string): void {
-  try {
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'en-US'
-    u.rate = 0.9
-    speechSynthesis.cancel()
-    speechSynthesis.speak(u)
-  } catch {
-    toast('当前浏览器不支持发音')
-  }
+  speakWord(text).catch((e) => toast(e instanceof Error ? e.message : '发音失败，请稍后重试'))
 }

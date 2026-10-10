@@ -152,13 +152,15 @@ interface RequestOptions {
   body?: unknown
   /** FormData 上传：不设 Content-Type（浏览器自动带 boundary），body 原样透传 */
   form?: FormData
+  /** 二进制响应：直接返回 Blob 而非解析 JSON */
+  blob?: boolean
   /** 401 时是否尝试刷新令牌后重试。登录/注册/刷新自身必须关掉 */
   retryOn401?: boolean
 }
 
 /** 带认证的请求核心：注入 Bearer；401 时单飞刷新后重试一次 */
 export async function authFetch<T>(url: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, form, retryOn401 = true } = options
+  const { method = 'GET', body, form, blob, retryOn401 = true } = options
 
   const send = (): Promise<Response> => {
     const headers: Record<string, string> = {}
@@ -184,6 +186,13 @@ export async function authFetch<T>(url: string, options: RequestOptions = {}): P
     }
   }
 
+  if (blob) {
+    if (!res.ok) {
+      const errBody = (await res.json().catch(() => null)) as ApiErrBody | null
+      throw new ApiError(res.status, errBody?.code || 'request_failed', errBody?.message || `请求失败 ${res.status}`)
+    }
+    return (await res.blob()) as T
+  }
   return parse<T>(res)
 }
 

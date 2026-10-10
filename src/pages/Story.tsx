@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { loadBook, type Word } from '@/data/vocab'
 import { loadStory, type StoryScript } from '@/data/stories'
+import { speakWord } from '@/api/client'
 import { useApp } from '@/state/store'
 import { confetti, toast, buzz } from '@/ui'
 
@@ -16,15 +17,7 @@ function starsOf(correct: number, total: number): number {
 }
 
 function speak(text: string): void {
-  try {
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'en-US'
-    u.rate = 0.92
-    speechSynthesis.cancel()
-    speechSynthesis.speak(u)
-  } catch {
-    /* 不支持发音则静默 */
-  }
+  speakWord(text).catch(() => toast('发音失败，请稍后重试'))
 }
 
 interface Resolved {
