@@ -150,20 +150,26 @@ function notifyUnauthorized(): void {
 interface RequestOptions {
   method?: string
   body?: unknown
+  /** FormData 上传：不设 Content-Type（浏览器自动带 boundary），body 原样透传 */
+  form?: FormData
   /** 401 时是否尝试刷新令牌后重试。登录/注册/刷新自身必须关掉 */
   retryOn401?: boolean
 }
 
 /** 带认证的请求核心：注入 Bearer；401 时单飞刷新后重试一次 */
 export async function authFetch<T>(url: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, retryOn401 = true } = options
+  const { method = 'GET', body, form, retryOn401 = true } = options
 
   const send = (): Promise<Response> => {
     const headers: Record<string, string> = {}
-    if (body !== undefined) headers['Content-Type'] = 'application/json'
+    if (form === undefined && body !== undefined) headers['Content-Type'] = 'application/json'
     const token = getToken()
     if (token) headers.Authorization = `Bearer ${token}`
-    return fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) })
+    return fetch(url, {
+      method,
+      headers,
+      body: form !== undefined ? form : body === undefined ? undefined : JSON.stringify(body),
+    })
   }
 
   let res = await send()

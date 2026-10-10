@@ -1999,6 +1999,13 @@ button:disabled {
   font-weight: 800;
   color: var(--ink-soft);
 }
+.speak-tip.no {
+  color: #E14B4B;
+  background: #FFE3E3;
+  border-radius: 12px;
+  padding: 8px 14px;
+  text-align: center;
+}
 .speak-heard {
   font-size: 12.5px;
   font-weight: 800;

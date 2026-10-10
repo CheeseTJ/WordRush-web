@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { findUnitSync, loadBook, findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
 import { speakEnabled } from '@/data/exp'
+import { assessSpeak } from '@/api/client'
 import { useApp } from '@/state/store'
 import { fetchReviewQueue } from '@/api/client'
 import type { WordResult } from '@/api/client'
@@ -561,22 +562,7 @@ export default function Quiz() {
 
 /* ==================== 题型子组件 ==================== */
 
-/* Web Speech API 最小类型（lib.dom 未覆盖内核前缀，收窄到用到的成员） */
-interface SpeechRecognitionLike {
-  lang: string
-  interimResults: boolean
-  maxAlternatives: number
-  start(): void
-  stop(): void
-  onresult: ((e: SpeechResultLike) => void) | null
-  onerror: (() => void) | null
-  onend: (() => void) | null
-}
-interface SpeechResultLike {
-  results?: { length: number; [i: number]: { length: number; [k: number]: { transcript: string } } }
-}
-
-/** speak：口语跟读（实验特性）——webkitSpeechRecognition 词匹配率打分 */
+/** speak：口语跟读——录音上传后端评测（OpenPronounce），失败展示错误并可重试 */
 function SpeakCard({
   word,
   onAnswer,
@@ -586,83 +572,83 @@ function SpeakCard({
   onAnswer: (ok: boolean, r: WordResult[]) => void
   locked: boolean
 }) {
-  const [state, setState] = useState<'idle' | 'rec' | 'done' | 'err'>('idle')
+  const [state, setState] = useState<'idle' | 'rec' | 'upload' | 'done' | 'err'>('idle')
   const [heard, setHeard] = useState('')
   const [score, setScore] = useState(0)
+  const [errs, setErrs] = useState<{ expected: string; actual: string }[]>([])
+  const [errMsg, setErrMsg] = useState('')
   const answeredRef = useRef(false)
+  const recRef = useRef<MediaRecorder | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
-  function judge(transcript: string) {
-    // 词匹配率：目标词与识别文本各 token 的最大相似度（字符重合比例）
-    const norm = (s: string) => s.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean)
-    const tokens = norm(transcript)
-    const target = word.en.toLowerCase()
-    let best = 0
-    for (const t of tokens) {
-      if (t === target) {
-        best = 1
-        break
-      }
-      const a = new Set(t.split(''))
-      const b = new Set(target.split(''))
-      let hit = 0
-      a.forEach((c) => {
-        if (b.has(c)) hit++
-      })
-      best = Math.max(best, (2 * hit) / (a.size + b.size)) // Dice 系数
+  function settle(ok: boolean) {
+    setState('done')
+    if (answeredRef.current) return
+    answeredRef.current = true
+    const result: WordResult = { id: word.id, ok }
+    if (ok) {
+      confetti(14, ['#58CC02', '#1CB0F6'])
+      buzz(12)
+    } else {
+      buzz([26, 44, 26])
     }
-    return Math.round(best * 100)
+    setTimeout(() => onAnswer(ok, [result]), 900)
+  }
+
+  function stopRec() {
+    clearTimeout(timerRef.current)
+    if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop()
   }
 
   function record() {
-    if (locked || state === 'rec' || answeredRef.current) return
-    const SR = (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike; SpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition ??
-      (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition
-    if (!SR) {
-      toast('当前浏览器不支持语音识别，试试 Chrome')
+    if (locked || state === 'rec' || state === 'upload' || answeredRef.current) return
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrMsg('当前环境不支持录音（需要 HTTPS 或 localhost）')
+      setState('err')
       return
     }
-    const rec = new SR()
-    rec.lang = 'en-US'
-    rec.interimResults = false
-    rec.maxAlternatives = 3
-    setState('rec')
+    setErrMsg('')
     setHeard('')
-
-    rec.onresult = (e: SpeechResultLike) => {
-      const alt = e.results?.[0]
-      const texts: string[] = []
-      if (alt) {
-        for (let k = 0; k < alt.length; k++) texts.push(alt[k].transcript)
-      }
-      const all = texts.join(' ')
-      const s = Math.max(...texts.map(judge), 0)
-      const ok = s >= 60
-      setHeard(all)
-      setScore(s)
-      setState('done')
-      if (!answeredRef.current) {
-        answeredRef.current = true
-        const result: WordResult = { id: word.id, ok }
-        if (ok) {
-          confetti(14, ['#58CC02', '#1CB0F6'])
-          buzz(12)
-        } else {
-          buzz([26, 44, 26])
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        const mr = new MediaRecorder(stream)
+        recRef.current = mr
+        const chunks: Blob[] = []
+        mr.ondataavailable = (e) => {
+          if (e.data.size) chunks.push(e.data)
         }
-        setTimeout(() => onAnswer(ok, [result]), 900)
-      }
-    }
-    rec.onerror = () => {
-      setState('err') // 没听清/权限拒绝：允许重试
-    }
-    rec.onend = () => {
-      setState((s) => (s === 'rec' ? 'done' : s))
-    }
-    try {
-      rec.start()
-    } catch {
-      setState('err')
-    }
+        mr.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop())
+          setState('upload')
+          const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' })
+          assessSpeak(word.en, blob)
+            .then((r) => {
+              setScore(r.score)
+              setHeard(r.transcript)
+              setErrs((r.errors ?? []).map((e) => ({ expected: e.expected, actual: e.actual })))
+              settle(r.ok)
+            })
+            .catch((e) => {
+              // 不做浏览器兜底：直接暴露错误便于定位评测链路
+              setErrMsg(e instanceof Error ? e.message : '评测失败，请重试')
+              setState('err')
+            })
+        }
+        mr.onerror = () => {
+          stream.getTracks().forEach((t) => t.stop())
+          setErrMsg('录音失败，请重试')
+          setState('err')
+        }
+        mr.start()
+        setState('rec')
+        // 单词跟读 4 秒足够；提前点按可停止
+        timerRef.current = setTimeout(stopRec, 4000)
+      })
+      .catch(() => {
+        setErrMsg('麦克风权限被拒绝，请在浏览器设置中允许')
+        setState('err')
+      })
   }
 
   return (
@@ -681,15 +667,33 @@ function SpeakCard({
         <button
           type="button"
           className={`mic ${state === 'rec' ? 'rec' : ''} ${state === 'done' ? 'done' : ''}`}
-          onClick={record}
-          disabled={locked || state === 'done'}
+          onClick={() => {
+            if (state === 'rec') return stopRec()
+            record()
+          }}
+          disabled={locked || state === 'upload' || state === 'done'}
           aria-label="按下跟读"
         >
-          {state === 'rec' ? '🎙️ 听你读…' : state === 'done' ? `✓ ${score}分` : '🎙️ 按下跟读'}
+          {state === 'rec'
+            ? '🎙️ 读完点我停止'
+            : state === 'upload'
+              ? '⏳ 评测中…'
+              : state === 'done'
+                ? `✓ ${score}分`
+                : '🎙️ 按下跟读'}
         </button>
-        {state === 'err' && <div className="speak-tip">没听清或权限被拒，请再试一次</div>}
-        {heard && <div className="speak-heard">听到：「{heard}」 · {score >= 60 ? '发音很棒！' : '再试一次更接近原词'}</div>}
-        {state === 'idle' && <div className="speak-tip">点击麦克风，读出上面的单词</div>}
+        {state === 'err' && <div className="speak-tip no">⚠️ {errMsg || '评测失败，请重试'}</div>}
+        {state === 'done' && errs.length > 0 && (
+          <div className="speak-heard">
+            🔍 {errs.map((e) => `${e.expected} → ${e.actual || '(漏读)'}`).join(' · ')}
+          </div>
+        )}
+        {state === 'done' && heard && (
+          <div className="speak-heard">
+            听到：「{heard}」 · {score >= 50 ? '过关！' : '再试一次更接近原词'}
+          </div>
+        )}
+        {state === 'idle' && <div className="speak-tip">点击麦克风，读出上面的单词（4 秒内）</div>}
       </div>
     </>
   )

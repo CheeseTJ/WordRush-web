@@ -90,14 +90,14 @@ export default function Me() {
               setSpeak(on)
               setSpeakEnabled(on)
               buzz(10)
-              toast(on ? '口语跟读已开启，下次闯关生效 🎙️' : '口语跟读已关闭')
+              toast(on ? '口语跟读已开启 🎙️' : '口语跟读已关闭')
             }}
           >
             <div className="l">
               <span className="ic" style={{ background: 'var(--pink-l, #FFE3EC)' }}>
-                🧪
+                🎙️
               </span>
-              实验特性 · 口语跟读
+              口语跟读 · 后端智能评分
             </div>
             <span className="arr">{speak ? '已开启 ✓' : '已关闭 ›'}</span>
           </button>

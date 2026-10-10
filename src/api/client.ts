@@ -200,3 +200,23 @@ export async function refillHearts(): Promise<{ hearts: number; gems: number }> 
 export async function buyFreeze(): Promise<{ streak_freeze: number; gems: number }> {
   return authFetch<{ streak_freeze: number; gems: number }>('/api/v1/freeze/buy', { method: 'POST', body: {} })
 }
+
+/* ---------- 迭代四：口语跟读后端评测 ---------- */
+
+export interface SpeakAssess {
+  score: number
+  transcript: string
+  ok: boolean
+  errors?: { word: string; expected: string; actual: string; confidence: number }[]
+}
+
+/**
+ * 上传跟读音频给后端评测（OpenPronounce）。
+ * 服务不可用会抛出 status=503 的错误，调用方降级浏览器识别。
+ */
+export async function assessSpeak(word: string, blob: Blob): Promise<SpeakAssess> {
+  const fd = new FormData()
+  fd.append('word', word)
+  fd.append('audio', blob, 'recording.webm')
+  return authFetch<SpeakAssess>('/api/v1/speak/assess', { method: 'POST', form: fd })
+}
