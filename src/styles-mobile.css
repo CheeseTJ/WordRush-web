@@ -1,0 +1,64 @@
+/* ============================================================
+ * WordRush 布局 · 手机档（<600px）
+ * 端差异布局在此；组件样式在 styles.css，平板 tablet.css，桌面 desktop.css
+ * ============================================================ */
+
+.app {
+  height: 100dvh;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* 外部 layout：固定视口，内部各滚动区自行滚动 */
+  position: relative;
+}
+
+/* 主内容区：所有页面（Outlet）的定位容器 */
+.main-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 右侧信息栏：手机不显示 */
+.sidebar {
+  display: none;
+}
+
+/* 底部悬浮行：笑脸 + 今日目标卡（流内元素，位于 dock 上方） */
+.map-foot {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  margin-top: auto; /* 滚动区已 absolute 脱离文档流，用 auto margin 把 foot 推到底部 */
+  padding: 0 20px 14px;
+}
+.foot-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.foot-row .mascot {
+  position: static;
+  flex: 0 0 86px;
+  width: 86px;
+}
+.foot-row .goal {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 底部 dock：通栏 */
+.dock {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  gap: 4px;
+  margin: 0 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  padding: 8px 10px 16px; /* 底部留足空间，选中态下阴影不贴边 */
+  background: #fff;
+  border-radius: 26px;
+  box-shadow: 0 8px 0 var(--line), 0 16px 30px rgba(150, 120, 80, 0.2);
+}

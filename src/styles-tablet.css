@@ -1,0 +1,45 @@
+/* ============================================================
+ * WordRush 布局 · 平板档（600px ~ 979.98px）
+ * 右侧 280px 信息栏；路径区让位；dock 底部居中；手机悬浮行隐藏。
+ * 显式 max-width 上限：与本档互斥，样式不向桌面渗透。
+ * ============================================================ */
+
+@media (min-width: 600px) and (max-width: 979.98px) {
+  .app {
+    max-width: none;
+  }
+  .hud {
+    margin-right: 280px;
+  }
+  .main-area {
+    margin-right: 280px;
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 280px;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 16px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(4px);
+    border-left: 1px solid rgba(75, 70, 57, 0.08);
+    z-index: 6;
+  }
+  .sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .map-foot {
+    display: none; /* 目标卡/笑脸已常驻侧栏 */
+  }
+  .dock {
+    width: min(400px, 70%);
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

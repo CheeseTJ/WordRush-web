@@ -1,0 +1,57 @@
+/* ============================================================
+ * WordRush 布局 · 桌面档（≥980px）
+ * 左侧竖排 dock + 中央路径 + 右侧 320px 信息栏
+ * ============================================================ */
+
+@media (min-width: 980px) {
+  .app {
+    max-width: none;
+  }
+  .hud {
+    margin-left: 96px;
+    margin-right: 320px;
+  }
+  .main-area {
+    margin-left: 96px;
+    margin-right: 320px;
+  }
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    padding: 16px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(4px);
+    border-left: 1px solid rgba(75, 70, 57, 0.08);
+    z-index: 6;
+  }
+  .sidebar::-webkit-scrollbar {
+    display: none;
+  }
+  .sidebar .badges {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .map-foot {
+    display: none;
+  }
+  .dock {
+    position: absolute;
+    left: 18px;
+    top: 0;
+    bottom: 0;
+    margin: auto 0; /* 垂直居中：不依赖 transform/translate，兼容所有内核 */
+    height: fit-content;
+    width: 78px;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 8px;
+  }
+}
