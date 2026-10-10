@@ -31,7 +31,7 @@ export default defineConfig({
       workbox: {
         // SPA 入口与静态资源走 precache，离线可打开
         navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,wav}'],
         runtimeCaching: [
           {
             // 词库正文：CacheFirst——首次联网加载后永久离线可用

@@ -33,21 +33,23 @@ export interface VoiceOption {
   desc: string
 }
 
-/** 候选音色（Piper 预训练库，首次使用自动下载音色模型） */
+/** 候选音色（Piper 预训练库；file 为打包进前端的试听样例，秒播） */
 export const VOICE_OPTIONS: VoiceOption[] = [
-  { id: '', name: 'Lessac', desc: '默认 · 清晰女声（美音）' },
-  { id: 'en_US-amy-medium', name: 'Amy', desc: '温暖女声（美音）' },
+  { id: 'en_US-amy-medium', name: 'Amy', desc: '默认 · 温暖女声（美音）' },
+  { id: 'en_US-lessac-medium', name: 'Lessac', desc: '清晰女声（美音）' },
   { id: 'en_US-ryan-high', name: 'Ryan', desc: '沉稳男声（美音 · 高音质）' },
   { id: 'en_GB-cori-medium', name: 'Cori', desc: '英式女声' },
   { id: 'en_GB-alan-medium', name: 'Alan', desc: '英式男声' },
 ]
 
-/** 当前选中的音色 id（空 = 服务端默认） */
+const DEFAULT_VOICE = 'en_US-amy-medium'
+
+/** 当前选中的音色 id（未设置过 = Amy） */
 export function currentVoice(): string {
   try {
-    return localStorage.getItem(VOICE_KEY) || ''
+    return localStorage.getItem(VOICE_KEY) || DEFAULT_VOICE
   } catch {
-    return ''
+    return DEFAULT_VOICE
   }
 }
 

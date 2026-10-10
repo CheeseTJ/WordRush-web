@@ -257,13 +257,12 @@ export async function speakWord(text: string): Promise<void> {
   await new Audio(url).play()
 }
 
-/** 试听指定音色（音色弹层用）：播一句固定样例，播完才 resolve */
-export async function previewVoice(voice: string): Promise<void> {
-  const url = await fetchSpeakUrl('Hello! Let\'s learn English together.', voice)
-  await new Promise<void>((resolve, reject) => {
-    const a = new Audio(url)
+/** 试听指定音色（音色弹层用）：播放打包进前端的预合成样例，秒播，播完才 resolve */
+export function previewVoice(voice: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const a = new Audio(`/voices/${voice}.wav`)
     a.onended = () => resolve()
-    a.onerror = () => reject(new Error('播放失败'))
+    a.onerror = () => reject(new Error('试听音频加载失败'))
     a.play().catch(reject)
   })
 }
