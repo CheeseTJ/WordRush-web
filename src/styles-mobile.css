@@ -62,3 +62,12 @@
   border-radius: 26px;
   box-shadow: 0 8px 0 var(--line), 0 16px 30px rgba(150, 120, 80, 0.2);
 }
+
+/* 手机档 HUD 重排（迭代三）：只留「红心 + 连胜」，XP 移入统计/侧栏 */
+.hud .pill.xp {
+  display: none;
+}
+/* 任务横幅：手机上任务条横向滑动 */
+.tasks-banner .tb-item {
+  flex: 0 0 auto;
+}

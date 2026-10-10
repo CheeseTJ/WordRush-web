@@ -42,4 +42,8 @@
     margin-left: auto;
     margin-right: auto;
   }
+  /* 平板档 HUD 恢复 XP 胶囊（mobile 基础样式隐藏） */
+  .hud .pill.xp {
+    display: flex;
+  }
 }

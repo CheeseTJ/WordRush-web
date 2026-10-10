@@ -54,4 +54,8 @@
     gap: 6px;
     padding: 14px 8px;
   }
+  /* 桌面档 HUD 恢复 XP 胶囊（mobile 基础样式隐藏） */
+  .hud .pill.xp {
+    display: flex;
+  }
 }

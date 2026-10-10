@@ -1701,3 +1701,117 @@ button:disabled {
   font-weight: 800;
   color: var(--ink-soft);
 }
+
+/* ---------- 迭代三 · 经济系统 ---------- */
+/* HUD 红心胶囊：数字带强调色 */
+.pill.hearts .num {
+  color: #FF4B4B;
+}
+
+/* 侧栏经济面板（红心/宝石/冻结） */
+.econ-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.econ-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F6F1E7;
+  border-radius: 99px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.econ-chip b {
+  font-weight: 900;
+}
+
+/* 每日任务横幅（地图顶部悬浮） */
+.tasks-banner {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 12px;
+  right: 12px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 9px 12px;
+  box-shadow: 0 4px 0 var(--line), 0 12px 26px rgba(150, 120, 80, 0.18);
+}
+.tb-title {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.tb-list {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tb-list::-webkit-scrollbar {
+  display: none;
+}
+.tb-item {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  border: 0;
+  border-radius: 12px;
+  padding: 5px 10px;
+  background: #F6F1E7;
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--ink);
+  transition: transform 0.12s;
+}
+.tb-item:active {
+  transform: scale(0.94);
+}
+.tb-item.ready {
+  background: #E8F8D8;
+  color: #3E8A00;
+}
+.tb-item.got {
+  background: #F0E4D2;
+  color: #8B7E63;
+}
+.tb-label {
+  white-space: nowrap;
+}
+.tb-meta {
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+/* 红心归零失败弹层 */
+.hearts-out {
+  text-align: center;
+}
+.fail-heart {
+  font-size: 64px;
+  line-height: 1;
+  animation: bob 1.4s ease-in-out infinite;
+}
+.gem-line {
+  font-weight: 800;
+  color: #B47B00;
+  background: #FFF3D6;
+  border-radius: 99px;
+  padding: 6px 14px;
+  display: inline-block;
+  font-size: 12.5px;
+}

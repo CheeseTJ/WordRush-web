@@ -160,10 +160,13 @@ function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = []): 
 export default function Quiz() {
   const { unitId } = useParams()
   const nav = useNavigate()
-  const { finishQuiz, profile } = useApp()
+  const { finishQuiz, refillHearts, profile } = useApp()
   const [words, setWords] = useState<Word[] | null>(null)
   const [missing, setMissing] = useState(false)
   const [nextUnitId, setNextUnitId] = useState<string | null>(null)
+  // 红心归零：本关失败结算（补心 / 等待恢复）
+  const [outOfHearts, setOutOfHearts] = useState(false)
+  const [refilling, setRefilling] = useState(false)
 
   // unitId 变化（含通关后跳下一关）：重置答题状态并加载关卡
   useEffect(() => {
@@ -181,6 +184,7 @@ export default function Quiz() {
     chestGivenRef.current = false
     chestPendingRef.current = false
     busyRef.current = false
+    setOutOfHearts(false)
 
     const sync = findUnitSync(unitId)
     if (sync) {
@@ -359,8 +363,28 @@ export default function Quiz() {
       stars,
       words: results,
     })
+    // 红心归零：改出失败结算页（不展示常规结算）
+    if (!r.queued && r.profile && (r.profile.hearts ?? 5) <= 0) {
+      setOutOfHearts(true)
+      buzz([40, 60, 40])
+      return
+    }
     setDone({ stars, xp, queued: r.queued })
     confetti(stars >= 2 ? 80 : 40, ['#58CC02', '#FFC800', '#1CB0F6', '#FF6B6B'])
+  }
+
+  async function doRefill() {
+    if (refilling) return
+    setRefilling(true)
+    try {
+      await refillHearts()
+      setOutOfHearts(false)
+      toast('红心已补满 ❤️')
+    } catch (e) {
+      toast(e instanceof Error ? e.message : '补心失败，稍后再试')
+    } finally {
+      setRefilling(false)
+    }
   }
 
   function restart() {
@@ -448,7 +472,7 @@ export default function Quiz() {
         )}
       </div>
 
-      {done && (
+      {done && !outOfHearts && (
         <div className="fill">
           <div className="box">
             <h2>{done.stars > 0 ? '关卡完成！' : '再试一次？'}</h2>
@@ -490,6 +514,31 @@ export default function Quiz() {
             </button>
             <button type="button" className="btn alt" onClick={() => nav('/map')}>
               返回地图
+            </button>
+          </div>
+        </div>
+      )}
+      {outOfHearts && (
+        <div className="fill">
+          <div className="box hearts-out">
+            <div className="fail-heart">💔</div>
+            <h2>红心用完了</h2>
+            <p>
+              答错的词都已进入复习计划
+              <br />
+              每半小时自动恢复 1 颗红心
+            </p>
+            <p className="gem-line">💎 剩余 {profile.gems ?? 0} · 补满红心需 25</p>
+            <button
+              type="button"
+              className="btn"
+              disabled={refilling || (profile.gems ?? 0) < 25}
+              onClick={doRefill}
+            >
+              {refilling ? '补心中…' : '💎 25 补满红心'}
+            </button>
+            <button type="button" className="btn alt" onClick={() => nav('/map')}>
+              等待恢复，返回地图
             </button>
           </div>
         </div>

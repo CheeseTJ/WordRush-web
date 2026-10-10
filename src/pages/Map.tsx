@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadBook, currentBookId, bookMeta, type LoadedBook } from '@/data/vocab'
 import { useApp } from '@/state/store'
+import { fetchTasks, claimTask, type Task } from '@/api/client'
 import { confetti, toast, Mascot } from '@/ui'
 
 const PHRASES = [
@@ -31,12 +32,33 @@ function useWideMedia(): boolean {
 /** 学习地图：全量关卡平铺成一条无尽长路（长期学习形态），进度来自服务端 */
 export default function Map() {
   const nav = useNavigate()
-  const { progress } = useApp()
+  const { progress, profile, refresh } = useApp()
   const [bubble, setBubble] = useState('')
   const [mood, setMood] = useState<'happy' | 'sad' | undefined>()
   const [book, setBook] = useState<LoadedBook | null>(null)
   const [error, setError] = useState('')
+  const [tasks, setTasks] = useState<Task[]>([])
   const bookId = currentBookId()
+
+  // 每日任务（迭代三）：进地图拉取，领奖后刷新
+  const loadTasks = useCallback(() => {
+    fetchTasks().then(setTasks).catch(() => {})
+  }, [])
+  useEffect(() => {
+    loadTasks()
+  }, [loadTasks])
+
+  async function onClaim(id: string) {
+    try {
+      const gems = await claimTask(id)
+      toast(`领取成功 +${gems} 宝石 💎`)
+      confetti(18, ['#FFC800', '#58CC02', '#1CB0F6'])
+      loadTasks()
+      void refresh()
+    } catch (e) {
+      toast(e instanceof Error ? e.message : '领取失败')
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -65,8 +87,9 @@ export default function Map() {
   // 布局（攀登形态）：第 1 关在底部，越往上关卡越高级。
   // 每章入口（章首关）下方预留独立空间放章标题，避免与上一章的节点/标签重叠。
   const wide = useWideMedia()
+  const hasTasks = tasks.length > 0
   const { positions, mapHeight } = useMemo(() => {
-    const TOP_PAD = 60 // 最顶关上方呼吸
+    const TOP_PAD = hasTasks ? 128 : 60 // 顶部有任务横幅时预留空间
     // 底部安全区：手机要给「笑脸+目标卡」悬浮行留位；宽屏该行隐藏，只留少量呼吸
     const BOTTOM_PAD = wide ? 48 : 280
     const rel: { x: number; dy: number }[] = []
@@ -81,7 +104,7 @@ export default function Map() {
     // 第 1 关贴底：y = 底部起点 - 累积位移（关卡序号越大越靠上）
     const pos = rel.map((o) => ({ x: o.x, y: height - BOTTOM_PAD - o.dy }))
     return { positions: pos, mapHeight: height }
-  }, [units, wide])
+  }, [units, wide, hasTasks])
 
   const doneIdx = useMemo(() => {
     let n = 0
@@ -124,7 +147,7 @@ export default function Map() {
         {!error && !book && <div className="empty-tip">正在打开《{meta.name}》…</div>}
         {book && (
           <div className="map-inner" style={{ height: mapHeight }}>
-            <div className="chap" style={{ top: 18 }}>
+            <div className="chap" style={{ top: hasTasks ? 108 : 18 }}>
               <div className="t">{meta.name}</div>
               <div className="s">
                 {meta.desc} · {meta.words} 词 {meta.units} 关
@@ -159,6 +182,7 @@ export default function Map() {
                     style={{ left: `${pos.x}%`, top: pos.y }}
                     onClick={() => {
                       if (!unlocked) return toast('先通过上一关来解锁吧')
+                      if ((profile.hearts ?? 5) <= 0) return toast('红心用完了，等待恢复或用宝石补满 ❤️')
                       nav(`/quiz/${unit.id}`)
                     }}
                   >
@@ -172,6 +196,32 @@ export default function Map() {
           </div>
         )}
       </div>
+
+      {/* 每日任务横幅（迭代三） */}
+      {hasTasks && (
+        <div className="tasks-banner stg" style={{ ['--d' as string]: 1 }}>
+          <div className="tb-title">🎯 每日任务</div>
+          <div className="tb-list">
+            {tasks.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className={`tb-item ${t.claimed ? 'got' : t.done ? 'ready' : ''}`}
+                onClick={() => {
+                  if (t.claimed) return toast('今天的奖励已经领过啦')
+                  if (!t.done) return toast('任务还没完成哦，加油！')
+                  void onClaim(t.id)
+                }}
+              >
+                <span className="tb-label">{t.label}</span>
+                <span className="tb-meta">
+                  {t.claimed ? '✓ 已领取' : t.done ? `领 ${t.reward} 💎` : `${t.current}/${t.target}`}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="map-foot">
         <div className="foot-row stg" style={{ ['--d' as string]: 2 }}>

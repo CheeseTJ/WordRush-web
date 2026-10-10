@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { hasSession, logout as ucLogout, setUnauthorizedHandler } from '@/api/ucenter'
-import { fetchProgress, fetchProfile, flushPending, pendingCount, submitQuiz, type Profile, type QuizSubmit, type UnitProgress } from '@/api/client'
+import { fetchProgress, fetchProfile, flushPending, pendingCount, submitQuiz, refillHearts as refillHeartsApi, type Profile, type QuizFinish, type QuizSubmit, type UnitProgress } from '@/api/client'
 
 interface AppState {
   authed: boolean
@@ -13,7 +13,9 @@ interface AppState {
   /** 登录/注册成功后调用：置登录态并触发首屏数据加载 */
   signIn: () => void
   doLogout: () => Promise<void>
-  finishQuiz: (q: QuizSubmit) => Promise<{ queued: boolean; profile: Profile | null }>
+  finishQuiz: (q: QuizSubmit) => Promise<{ queued: boolean; profile: QuizFinish | null }>
+  /** 25 宝石补满红心（失败弹层用），成功后同步本地档案 */
+  refillHearts: () => Promise<void>
 }
 
 const Ctx = createContext<AppState | null>(null)
@@ -26,7 +28,7 @@ export function useApp(): AppState {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [authed, setAuthed] = useState(hasSession())
-  const [profile, setProfile] = useState<Profile>({ xp: 0, streak_days: 0, level: 1 })
+  const [profile, setProfile] = useState<Profile>({ xp: 0, streak_days: 0, level: 1, hearts: 5, gems: 0, streak_freeze: 0 })
   const [progress, setProgress] = useState<Map<string, UnitProgress>>(new Map())
   const [pending, setPending] = useState(0)
   const [loading, setLoading] = useState(authed)
@@ -57,6 +59,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = useCallback(() => setAuthed(true), [])
+
+  const refillHearts = useCallback(async () => {
+    const r = await refillHeartsApi()
+    setProfile((p) => ({ ...p, hearts: r.hearts, gems: r.gems }))
+  }, [])
 
   const finishQuiz = useCallback(async (q: QuizSubmit) => {
     const r = await submitQuiz(q)
@@ -99,8 +106,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [authed, refresh])
 
   const value = useMemo<AppState>(
-    () => ({ authed, profile, progress, pending, loading, refresh, signIn, doLogout, finishQuiz }),
-    [authed, profile, progress, pending, loading, refresh, signIn, doLogout, finishQuiz],
+    () => ({ authed, profile, progress, pending, loading, refresh, signIn, doLogout, finishQuiz, refillHearts }),
+    [authed, profile, progress, pending, loading, refresh, signIn, doLogout, finishQuiz, refillHearts],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

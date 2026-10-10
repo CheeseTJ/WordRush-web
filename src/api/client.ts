@@ -13,6 +13,9 @@ export interface Profile {
   streak_days: number
   last_day?: string
   level?: number
+  hearts?: number
+  gems?: number
+  streak_freeze?: number
 }
 
 export interface UnitProgress {
@@ -36,6 +39,14 @@ export interface QuizSubmit {
   best_combo: number
   stars: number
   words: WordResult[]
+}
+
+/** 关卡提交响应：档案 + 经济结算（红心/宝石/失败标记） */
+export interface QuizFinish extends Profile {
+  xp_gained?: number
+  gems_gained?: number
+  hearts_lost?: number
+  failed?: boolean
 }
 
 export interface DailyStat {
@@ -96,12 +107,12 @@ export async function fetchProgress(): Promise<UnitProgress[]> {
 
 /* ---------- 关卡提交 ---------- */
 
-async function postQuiz(q: QuizSubmit): Promise<Profile> {
-  return authFetch<Profile>('/api/v1/quiz/finish', { method: 'POST', body: q })
+async function postQuiz(q: QuizSubmit): Promise<QuizFinish> {
+  return authFetch<QuizFinish>('/api/v1/quiz/finish', { method: 'POST', body: q })
 }
 
 /** 提交关卡：失败（断网/服务不可达）时入队，返回本地预估档案 */
-export async function submitQuiz(q: QuizSubmit): Promise<{ profile: Profile | null; queued: boolean }> {
+export async function submitQuiz(q: QuizSubmit): Promise<{ profile: QuizFinish | null; queued: boolean }> {
   try {
     const profile = await postQuiz(q)
     return { profile, queued: false }
@@ -156,4 +167,36 @@ export async function fetchStats(): Promise<Stats> {
     if (e instanceof Error && 'status' in e && (e as { status: number }).status === 401) throw e
     return lsJSON<Stats>(CACHE_STATS, { xp: 0, streak_days: 0, level: 1, learned: 0, days: [] })
   }
+}
+
+/* ---------- 迭代三：经济系统（每日任务 / 红心 / 冻结） ---------- */
+
+export interface Task {
+  id: 'new' | 'review' | 'star' | string
+  label: string
+  target: number
+  current: number
+  reward: number
+  done: boolean
+  claimed: boolean
+}
+
+export async function fetchTasks(): Promise<Task[]> {
+  const data = await authFetch<{ tasks: Task[] }>('/api/v1/tasks')
+  return data.tasks
+}
+
+export async function claimTask(id: string): Promise<number> {
+  const data = await authFetch<{ gems: number }>('/api/v1/tasks/claim', { method: 'POST', body: { id } })
+  return data.gems
+}
+
+/** 25 宝石补满红心，返回 {hearts, gems} */
+export async function refillHearts(): Promise<{ hearts: number; gems: number }> {
+  return authFetch<{ hearts: number; gems: number }>('/api/v1/hearts/refill', { method: 'POST', body: {} })
+}
+
+/** 200 宝石购买 1 个连胜冻结，返回 {streak_freeze, gems} */
+export async function buyFreeze(): Promise<{ streak_freeze: number; gems: number }> {
+  return authFetch<{ streak_freeze: number; gems: number }>('/api/v1/freeze/buy', { method: 'POST', body: {} })
 }

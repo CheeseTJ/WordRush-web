@@ -63,6 +63,21 @@ export function Sidebar() {
         </div>
       </div>
 
+      {/* 经济面板（迭代三）：红心 / 宝石 / 连胜冻结 */}
+      <div className="panel side-goal">
+        <div className="econ-row">
+          <span className="econ-chip" title="红心：每 30 分钟恢复 1 颗">
+            ❤️ <b>{profile.hearts ?? 5}</b>/5
+          </span>
+          <span className="econ-chip" title="宝石：通关、任务与连击奖励">
+            💎 <b>{profile.gems ?? 0}</b>
+          </span>
+          <span className="econ-chip" title="连胜冻结：断签日自动消耗，保住连胜">
+            🧊 <b>{profile.streak_freeze ?? 0}</b>
+          </span>
+        </div>
+      </div>
+
       {/* 连胜 */}
       <div className="panel side-goal">
         <span style={{ fontSize: 32, lineHeight: 1 }}>🔥</span>

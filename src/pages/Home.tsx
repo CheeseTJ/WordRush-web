@@ -31,10 +31,20 @@ export default function Home() {
   const nav = useNavigate()
   const shownXp = useTick(profile.xp)
   const shownStreak = useTick(profile.streak_days)
+  const hearts = profile.hearts ?? 5
 
   return (
     <div className="app">
       <header className="hud stg" style={{ ['--d' as string]: 0 }}>
+        <button
+          type="button"
+          className="pill hearts"
+          title={hearts >= 5 ? '红心已满' : '每 30 分钟恢复 1 颗红心'}
+          onClick={() => nav('/map')}
+        >
+          <span>{hearts > 0 ? '❤️' : '💔'}</span>
+          <span className="num">{hearts}</span>/5
+        </button>
         <button
           type="button"
           className="pill streak"
