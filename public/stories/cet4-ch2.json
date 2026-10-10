@@ -1,0 +1,21 @@
+{
+  "id": "cet4-ch2-story",
+  "chapter": "cet4-ch2",
+  "title": "学生会辩论",
+  "emoji": "🎤",
+  "scene": "竞选学生会主席的最后陈述",
+  "lines": [
+    { "name": "Leo", "emoji": "🐻", "en": "Your speech is next. Any regrets about your campaign?", "zh": "下一个就是你的演讲了。对这次竞选有什么遗憾吗？" },
+    { "name": "你", "emoji": "🐣", "en": "No. Our ___ is obvious: more study rooms, lower club fees.", "zh": "没有。我们的政策很明确：更多自习室，更低的社团费用。", "word": "policy", "quiz": { "answer": "policy", "opts": ["policy", "committee", "fantasy", "harmony"] } },
+    { "name": "Leo", "emoji": "🐻", "en": "The ___ will vote right after. Are you ready to dominate the stage?", "zh": "评审委员会马上投票。准备好掌控全场了吗？", "word": "committee", "quiz": { "answer": "committee", "opts": ["committee", "commission", "institution", "audience"] } },
+    { "name": "你", "emoji": "🐣", "en": "Ready. But I won't dominate — I plan to listen first.", "zh": "准备好了。但我不想独断——我打算先倾听。", "word": "dominate" },
+    { "name": "Leo", "emoji": "🐻", "en": "Some say your promise to rebuild the gym is a fantasy.", "zh": "有人说你重建体育馆的承诺是空想。", "word": "fantasy" },
+    { "name": "你", "emoji": "🐣", "en": "It's rational. We can ___ it in one year with the new fund.", "zh": "这是合理的。用新基金，一年内就能落实。", "word": "implement", "quiz": { "answer": "implement", "opts": ["implement", "imitate", "enlarge", "rebuild"] } },
+    { "name": "Leo", "emoji": "🐻", "en": "And the cost? That plan may exceed our budget by far.", "zh": "那开销呢？那个计划可能远超预算。", "word": "exceed" },
+    { "name": "你", "emoji": "🐣", "en": "We resolved that: the art union will share the hall with us.", "zh": "我们已经解决了：艺术协会会和我们一起共用场馆。", "word": "union" },
+    { "name": "Leo", "emoji": "🐻", "en": "Clever. Last question — why should they halt their support for Ben?", "zh": "聪明。最后一个问题——他们为什么要停止支持 Ben？" },
+    { "name": "你", "emoji": "🐣", "en": "Because Ben's headline promise was a disguise; he has no detailed plan.", "zh": "因为 Ben 那个吸引眼球的承诺只是伪装，他没有具体方案。", "word": "disguise" },
+    { "name": "Leo", "emoji": "🐻", "en": "Strong point. Now go — with ambition and a calm mind!", "zh": "有说服力。上吧——带着雄心，保持冷静！", "word": "ambition" },
+    { "name": "你", "emoji": "🐣", "en": "Thanks. Besides the speech, I also prepared answers for questions.", "zh": "谢谢。除了演讲，我还准备了答辩内容。", "word": "besides" }
+  ]
+}

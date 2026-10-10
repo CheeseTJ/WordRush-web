@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { findUnitSync, loadBook, findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
+import { speakEnabled } from '@/data/exp'
 import { useApp } from '@/state/store'
 import { fetchReviewQueue } from '@/api/client'
 import type { WordResult } from '@/api/client'
@@ -9,7 +10,7 @@ import { confetti, toast, buzz } from '@/ui'
 
 /* ==================== 题型定义 ==================== */
 
-export type QType = 'en2zh' | 'zh2en' | 'listen' | 'spell' | 'match' | 'cloze' | 'chest'
+export type QType = 'en2zh' | 'zh2en' | 'listen' | 'spell' | 'match' | 'cloze' | 'chest' | 'speak'
 
 const TYPE_META: Record<QType, { icon: string; label: string }> = {
   en2zh: { icon: '📖', label: '选择释义' },
@@ -19,6 +20,7 @@ const TYPE_META: Record<QType, { icon: string; label: string }> = {
   match: { icon: '🔗', label: '连连看' },
   cloze: { icon: '📝', label: '例句填空' },
   chest: { icon: '🎁', label: '宝箱' },
+  speak: { icon: '🗣️', label: '口语跟读' },
 }
 
 interface QItem {
@@ -144,6 +146,15 @@ function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = []): 
     used.add(w.id)
   })
 
+  // 口语跟读（实验特性，默认关）：追加 1 题跟读
+  if (speakEnabled()) {
+    const w = pool.find((x) => !used.has(x.id) && spellable(x))
+    if (w) {
+      used.add(w.id)
+      items.push({ type: 'speak', words: [w], scored: true })
+    }
+  }
+
   // match 屏：5 对 = 本关词 + 到期词（含未出独立题的），释义去重
   const matchPool = shuffle([...pool, ...dueWords]).filter((w, i, arr) => arr.findIndex((x) => x.zh === w.zh) === i)
   const matchWords = matchPool.slice(0, Math.min(5, matchPool.length))
@@ -248,6 +259,11 @@ export default function Quiz() {
   const [done, setDone] = useState<null | { stars: number; xp: number; queued: boolean }>(null)
   const [questions, setQuestions] = useState<QItem[]>([])
   const busyRef = useRef(false)
+  // 关内自适应：错词关尾重现 / 连击宝箱（必须在提前 return 之前声明，保证 Hooks 顺序稳定）
+  const replayRef = useRef<string[]>([])
+  const replayDoneRef = useRef<Set<string>>(new Set())
+  const chestPendingRef = useRef(false)
+  const chestGivenRef = useRef(false)
 
   if (missing) {
     return (
@@ -267,12 +283,6 @@ export default function Quiz() {
   const q = questions[qi]
   const screenTotal = questions.length
   const scoredTotal = questions.filter((x) => x.scored).length
-
-  // 关内自适应：错词关尾重现 / 连击宝箱
-  const replayRef = useRef<string[]>([])
-  const replayDoneRef = useRef<Set<string>>(new Set())
-  const chestPendingRef = useRef(false)
-  const chestGivenRef = useRef(false)
 
   /* ---------- 作答统一出口：ok + 该题产出的 words 结果 ---------- */
   function answer(ok: boolean, wordResults: WordResult[]) {
@@ -420,6 +430,8 @@ export default function Quiz() {
         {/* 题干区：按题型分发 */}
         {q.type === 'chest' ? (
           <ChestCard key={qi} onDone={next} />
+        ) : q.type === 'speak' ? (
+          <SpeakCard key={qi} word={q.words[0]} onAnswer={answer} locked={picked !== null} />
         ) : q.type === 'spell' ? (
           <SpellCard key={qi} word={q.words[0]} letters={q.letters!} onAnswer={answer} locked={picked !== null} />
         ) : q.type === 'match' ? (
@@ -548,6 +560,140 @@ export default function Quiz() {
 }
 
 /* ==================== 题型子组件 ==================== */
+
+/* Web Speech API 最小类型（lib.dom 未覆盖内核前缀，收窄到用到的成员） */
+interface SpeechRecognitionLike {
+  lang: string
+  interimResults: boolean
+  maxAlternatives: number
+  start(): void
+  stop(): void
+  onresult: ((e: SpeechResultLike) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+}
+interface SpeechResultLike {
+  results?: { length: number; [i: number]: { length: number; [k: number]: { transcript: string } } }
+}
+
+/** speak：口语跟读（实验特性）——webkitSpeechRecognition 词匹配率打分 */
+function SpeakCard({
+  word,
+  onAnswer,
+  locked,
+}: {
+  word: Word
+  onAnswer: (ok: boolean, r: WordResult[]) => void
+  locked: boolean
+}) {
+  const [state, setState] = useState<'idle' | 'rec' | 'done' | 'err'>('idle')
+  const [heard, setHeard] = useState('')
+  const [score, setScore] = useState(0)
+  const answeredRef = useRef(false)
+
+  function judge(transcript: string) {
+    // 词匹配率：目标词与识别文本各 token 的最大相似度（字符重合比例）
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean)
+    const tokens = norm(transcript)
+    const target = word.en.toLowerCase()
+    let best = 0
+    for (const t of tokens) {
+      if (t === target) {
+        best = 1
+        break
+      }
+      const a = new Set(t.split(''))
+      const b = new Set(target.split(''))
+      let hit = 0
+      a.forEach((c) => {
+        if (b.has(c)) hit++
+      })
+      best = Math.max(best, (2 * hit) / (a.size + b.size)) // Dice 系数
+    }
+    return Math.round(best * 100)
+  }
+
+  function record() {
+    if (locked || state === 'rec' || answeredRef.current) return
+    const SR = (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike; SpeechRecognition?: new () => SpeechRecognitionLike }).SpeechRecognition ??
+      (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognitionLike }).webkitSpeechRecognition
+    if (!SR) {
+      toast('当前浏览器不支持语音识别，试试 Chrome')
+      return
+    }
+    const rec = new SR()
+    rec.lang = 'en-US'
+    rec.interimResults = false
+    rec.maxAlternatives = 3
+    setState('rec')
+    setHeard('')
+
+    rec.onresult = (e: SpeechResultLike) => {
+      const alt = e.results?.[0]
+      const texts: string[] = []
+      if (alt) {
+        for (let k = 0; k < alt.length; k++) texts.push(alt[k].transcript)
+      }
+      const all = texts.join(' ')
+      const s = Math.max(...texts.map(judge), 0)
+      const ok = s >= 60
+      setHeard(all)
+      setScore(s)
+      setState('done')
+      if (!answeredRef.current) {
+        answeredRef.current = true
+        const result: WordResult = { id: word.id, ok }
+        if (ok) {
+          confetti(14, ['#58CC02', '#1CB0F6'])
+          buzz(12)
+        } else {
+          buzz([26, 44, 26])
+        }
+        setTimeout(() => onAnswer(ok, [result]), 900)
+      }
+    }
+    rec.onerror = () => {
+      setState('err') // 没听清/权限拒绝：允许重试
+    }
+    rec.onend = () => {
+      setState((s) => (s === 'rec' ? 'done' : s))
+    }
+    try {
+      rec.start()
+    } catch {
+      setState('err')
+    }
+  }
+
+  return (
+    <>
+      <div className="qcard">
+        <div className="qtag">
+          <span className="qtype-badge">🗣️ 口语跟读</span>
+        </div>
+        <div className="qword">{word.en}</div>
+        <div className="spell-zh">{word.zh}</div>
+        <button type="button" className="speak" onClick={() => speak(word.en)}>
+          🔊 听示范
+        </button>
+      </div>
+      <div className="speak-panel">
+        <button
+          type="button"
+          className={`mic ${state === 'rec' ? 'rec' : ''} ${state === 'done' ? 'done' : ''}`}
+          onClick={record}
+          disabled={locked || state === 'done'}
+          aria-label="按下跟读"
+        >
+          {state === 'rec' ? '🎙️ 听你读…' : state === 'done' ? `✓ ${score}分` : '🎙️ 按下跟读'}
+        </button>
+        {state === 'err' && <div className="speak-tip">没听清或权限被拒，请再试一次</div>}
+        {heard && <div className="speak-heard">听到：「{heard}」 · {score >= 60 ? '发音很棒！' : '再试一次更接近原词'}</div>}
+        {state === 'idle' && <div className="speak-tip">点击麦克风，读出上面的单词</div>}
+      </div>
+    </>
+  )
+}
 
 /** listen：自动朗读 + 重播 */
 function ListenPrompt({ word, autoPlay }: { word: Word; autoPlay?: boolean }) {

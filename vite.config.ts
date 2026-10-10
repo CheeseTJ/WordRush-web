@@ -44,6 +44,16 @@ export default defineConfig({
             },
           },
           {
+            // 情景剧本（迭代四）：CacheFirst，与词库同策略离线可玩
+            urlPattern: ({ url }) => url.pathname.startsWith('/stories/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'wordrush-stories',
+              expiration: { maxEntries: 24, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // 业务 API：网络优先，失败回退缓存——离线时进度可读
             urlPattern: ({ url }) => url.pathname.startsWith('/api/v1/'),
             handler: 'NetworkFirst',

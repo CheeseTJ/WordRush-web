@@ -1,0 +1,21 @@
+{
+  "id": "cet4-ch3-story",
+  "chapter": "cet4-ch3",
+  "title": "导师的办公室",
+  "emoji": "🧪",
+  "scene": "毕业论文开题前的谈话",
+  "lines": [
+    { "name": "Dr. Chen", "emoji": "🐼", "en": "Come in. I received your invitation to the lab demo — thanks.", "zh": "请进。我收到了实验室演示的邀请——谢谢。", "word": "invitation" },
+    { "name": "你", "emoji": "🐣", "en": "Of course. Your approval means a lot to our project.", "zh": "应该的。您的批准对我们的项目太重要了。", "word": "approval" },
+    { "name": "Dr. Chen", "emoji": "🐼", "en": "Before anything: what is your ___ for this topic?", "zh": "先说清楚：你选这个题目的动机是什么？", "word": "motive", "quiz": { "answer": "motive", "opts": ["motive", "medium", "magnet", "molecule"] } },
+    { "name": "你", "emoji": "🐣", "en": "Cheap sensors are enormous in number but poor in quality. I want to fix that.", "zh": "廉价的传感器数量庞大但质量很差，我想解决这个问题。", "word": "enormous" },
+    { "name": "Dr. Chen", "emoji": "🐼", "en": "A wise goal. But external noise will harm your data.", "zh": "目标很有智慧。但外部噪声会损害你的数据。", "word": "harm" },
+    { "name": "你", "emoji": "🐣", "en": "___ we add a filter, the error stays under 2 percent.", "zh": "只要加装一个滤波器，误差就能保持在 2% 以内。", "word": "provided", "quiz": { "answer": "provided", "opts": ["provided", "perform", "possess", "pretend"] } },
+    { "name": "Dr. Chen", "emoji": "🐼", "en": "Good. Now revise chapter two — the theory part feels half-finished.", "zh": "好。现在去修订第二章——理论部分写得像半成品。", "word": "revise" },
+    { "name": "你", "emoji": "🐣", "en": "I'll rewrite it tonight and ___ on the core proof.", "zh": "我今晚就重写，集中精力攻克核心证明。", "word": "concentrate", "quiz": { "answer": "concentrate", "opts": ["concentrate", "calculate", "communicate", "compete"] } },
+    { "name": "Dr. Chen", "emoji": "🐼", "en": "Don't spoil your health for it. Wisdom includes resting.", "zh": "别为此搞垮身体。会休息也是一种智慧。", "word": "wisdom" },
+    { "name": "你", "emoji": "🐣", "en": "Understood. I'll perform the final test next Monday instead.", "zh": "明白。那我改到下周一再做最终测试。", "word": "perform" },
+    { "name": "Dr. Chen", "emoji": "🐼", "en": "Perfect. Send me the draft before Friday — nowhere else to be by then.", "zh": "好。周五前把草稿发我——那之前我也没有别的安排。" },
+    { "name": "你", "emoji": "🐣", "en": "Will do. Thank you, Dr. Chen!", "zh": "一定。谢谢您，陈教授！" }
+  ]
+}

@@ -7,6 +7,7 @@ import Quiz from '@/pages/Quiz'
 import Review from '@/pages/Review'
 import Stats from '@/pages/Stats'
 import Me from '@/pages/Me'
+import Story from '@/pages/Story'
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { authed } = useApp()
@@ -37,6 +38,7 @@ function Shell() {
         <Route path="stats" element={<Stats />} />
         <Route path="me" element={<Me />} />
         <Route path="quiz/:unitId" element={<Quiz />} />
+        <Route path="story/:chapterId" element={<Story />} />
       </Route>
       <Route path="*" element={<Navigate to="/map" replace />} />
     </Routes>

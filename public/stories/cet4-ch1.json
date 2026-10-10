@@ -1,0 +1,22 @@
+{
+  "id": "cet4-ch1-story",
+  "chapter": "cet4-ch1",
+  "title": "第一份兼职",
+  "emoji": "💼",
+  "scene": "咖啡店的招聘面试",
+  "lines": [
+    { "name": "Nina", "emoji": "🦊", "en": "Morning! Are you here about the weekend job?", "zh": "早！你是来应聘周末兼职的吗？" },
+    { "name": "你", "emoji": "🐣", "en": "Yes. The poster said you still require one more helper.", "zh": "是的。海报上说你们还需要再招一名帮手。" },
+    { "name": "Nina", "emoji": "🦊", "en": "We do. Don't be nervous — the pay is a fair salary plus tips.", "zh": "没错。别紧张——工资是固定的薪水，外加小费。", "word": "salary" },
+    { "name": "你", "emoji": "🐣", "en": "Sounds great. I really need the money for my books.", "zh": "太好了，我买课本正需要这笔钱。" },
+    { "name": "Nina", "emoji": "🦊", "en": "Quick test first: can you ___ the change for a 20-dollar bill?", "zh": "先考考你：你会计算一张 20 美元该找的零钱吗？", "word": "calculate", "quiz": { "answer": "calculate", "opts": ["calculate", "resemble", "possess", "elect"] } },
+    { "name": "你", "emoji": "🐣", "en": "Of course. I never pretend to know things I can't do.", "zh": "当然会。我从不假装会自己做不来的事。", "word": "pretend" },
+    { "name": "Nina", "emoji": "🦊", "en": "Good, honesty matters here. And please never ___ a mistake from me.", "zh": "很好，诚实最重要。还有，犯了错千万别瞒着我。", "word": "conceal", "quiz": { "answer": "conceal", "opts": ["conceal", "govern", "scratch", "possess"] } },
+    { "name": "你", "emoji": "🐣", "en": "I promise. If I make a mistake, I'll report it at once.", "zh": "我保证。一旦出错，我会立刻报告。" },
+    { "name": "Nina", "emoji": "🦊", "en": "One more thing: if a customer shouts at you, don't let it discourage you.", "zh": "还有一件事：要是有顾客冲你发火，别灰心。", "word": "discourage" },
+    { "name": "你", "emoji": "🐣", "en": "I won't. My thick skin will ___ my mother's — she's a nurse.", "zh": "不会的。我的抗压能力会像我妈妈一样强——她是护士。", "word": "resemble", "quiz": { "answer": "resemble", "opts": ["resemble", "require", "discourage", "possess"] } },
+    { "name": "Nina", "emoji": "🦊", "en": "Ha! You're hired. Can you start this Saturday? The show for young artists needs staff.", "zh": "哈！你被录用了。这周六能来吗？青年艺术家表演需要人手。", "word": "audience" },
+    { "name": "你", "emoji": "🐣", "en": "Saturday is fine. If my plans change, I'll cancel three days ahead.", "zh": "周六可以。万一计划有变，我会提前三天取消。", "word": "cancel" },
+    { "name": "Nina", "emoji": "🦊", "en": "Perfect. Welcome to the team!", "zh": "完美。欢迎加入团队！" }
+  ]
+}

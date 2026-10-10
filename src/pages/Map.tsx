@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadBook, currentBookId, bookMeta, type LoadedBook } from '@/data/vocab'
+import { availableStories } from '@/data/stories'
 import { useApp } from '@/state/store'
 import { fetchTasks, claimTask, type Task } from '@/api/client'
 import { confetti, toast, Mascot } from '@/ui'
@@ -38,7 +39,17 @@ export default function Map() {
   const [book, setBook] = useState<LoadedBook | null>(null)
   const [error, setError] = useState('')
   const [tasks, setTasks] = useState<Task[]>([])
+  const [storySet, setStorySet] = useState<Set<string>>(new Set())
   const bookId = currentBookId()
+
+  // 情景对话（迭代四）：已上线的章节 id 集合
+  useEffect(() => {
+    let alive = true
+    availableStories().then((s) => alive && setStorySet(s))
+    return () => {
+      alive = false
+    }
+  }, [])
 
   // 每日任务（迭代三）：进地图拉取，领奖后刷新
   const loadTasks = useCallback(() => {
@@ -122,6 +133,21 @@ export default function Map() {
     [progress],
   )
 
+  // 章节全部通关 → 解锁该章情景对话（且线上有剧本）
+  // 注意：本文件组件名 Map 遮蔽了全局 Map 构造器，这里只能用 Record/Set
+  const storyReady = useMemo(() => {
+    const done: Record<string, boolean> = {}
+    for (const { unit, chapter } of units) {
+      const ok = (progress.get(unit.id)?.stars ?? 0) > 0
+      done[chapter.id] = (done[chapter.id] ?? true) && ok
+    }
+    const out = new Set<string>()
+    Object.entries(done).forEach(([c, ok]) => {
+      if (ok && storySet.has(c)) out.add(c)
+    })
+    return out
+  }, [units, progress, storySet])
+
   // 进入地图时自动定位到当前关卡（攀登形态：从下往上看）
   useEffect(() => {
     if (!book || !firstUncleared) return
@@ -173,6 +199,18 @@ export default function Map() {
                   <div className="chap" style={{ top: pos.y + 78 }}>
                     <div className="t">{chapter.title}</div>
                     {chapter.en && <div className="s">{chapter.en}</div>}
+                    {storySet.has(chapter.id) && (
+                      <button
+                        type="button"
+                        className={`story-chip ${storyReady.has(chapter.id) ? 'on' : 'lock'}`}
+                        onClick={() => {
+                          if (!storyReady.has(chapter.id)) return toast('先通关本章全部关卡，解锁情景对话 🎭')
+                          nav(`/story/${chapter.id}`)
+                        }}
+                      >
+                        🎭 情景对话{storyReady.has(chapter.id) ? '' : ' 🔒'}
+                      </button>
+                    )}
                   </div>
                 )}
                   <button

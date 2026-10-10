@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BOOKS, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vocab'
+import { speakEnabled, setSpeakEnabled } from '@/data/exp'
 import { useApp } from '@/state/store'
 import { toast, confetti, buzz } from '@/ui'
 
@@ -12,6 +13,7 @@ export default function Me() {
   const nav = useNavigate()
   const [bookId, setBookId] = useState(currentBookId())
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [speak, setSpeak] = useState(speakEnabled())
   const activeBook = BOOKS.find((b) => b.id === bookId) ?? BOOKS[0]
 
   function swapPet() {
@@ -79,6 +81,25 @@ export default function Me() {
             <span className="arr">
               {activeBook.name} · {activeBook.words} 词 ›
             </span>
+          </button>
+          <button
+            type="button"
+            className="rw"
+            onClick={() => {
+              const on = !speak
+              setSpeak(on)
+              setSpeakEnabled(on)
+              buzz(10)
+              toast(on ? '口语跟读已开启，下次闯关生效 🎙️' : '口语跟读已关闭')
+            }}
+          >
+            <div className="l">
+              <span className="ic" style={{ background: 'var(--pink-l, #FFE3EC)' }}>
+                🧪
+              </span>
+              实验特性 · 口语跟读
+            </div>
+            <span className="arr">{speak ? '已开启 ✓' : '已关闭 ›'}</span>
           </button>
           <button
             type="button"
