@@ -1,0 +1,25 @@
+# WordRush-web · React + Vite 前端
+
+# ---- 依赖 ----
+node_modules/
+
+# ---- 构建产物 ----
+dist/
+dist-ssr/
+*.tsbuildinfo
+
+# ---- 环境变量与本地配置 ----
+.env
+.env.local
+.env.*.local
+
+# ---- 日志 ----
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- 编辑器 / 系统 ----
+.DS_Store
+.idea/
+.vscode/
