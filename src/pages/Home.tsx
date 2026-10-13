@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useApp } from '@/state/store'
 import { Sidebar } from '@/components/Sidebar'
+import { gamifyEnabled } from '@/data/exp'
 
 /** XP/连胜数字滚动：目标值变化时缓动追赶（demo 同款） */
 function useTick(target: number): number {
@@ -37,18 +38,20 @@ export default function Home() {
   const hearts = profile.hearts ?? 5
 
   return (
-    <div className="app">
+    <div className={immersive ? 'app immersive' : 'app'}>
       {!immersive && (
         <header className="hud stg" style={{ ['--d' as string]: 0 }}>
-          <button
-            type="button"
-            className="pill hearts"
-            title={hearts >= 5 ? '红心已满' : '每 30 分钟恢复 1 颗红心'}
-            onClick={() => nav('/map')}
-          >
-            <span>{hearts > 0 ? '❤️' : '💔'}</span>
-            <span className="num">{hearts}</span>/5
-          </button>
+          {gamifyEnabled() && (
+            <button
+              type="button"
+              className="pill hearts"
+              title={hearts >= 5 ? '红心已满' : '每 30 分钟恢复 1 颗红心'}
+              onClick={() => nav('/map')}
+            >
+              <span>{hearts > 0 ? '❤️' : '💔'}</span>
+              <span className="num">{hearts}</span>/5
+            </button>
+          )}
           <button
             type="button"
             className="pill streak"
@@ -80,6 +83,7 @@ export default function Home() {
         <nav className="dock stg" style={{ ['--d' as string]: 3 }}>
           <DockLink to="/map" icon="🏠" label="学习" />
           <DockLink to="/review" icon="💪" label="复习" />
+          <DockLink to="/chat" icon="🗣️" label="对话" />
           <DockLink to="/stats" icon="📊" label="统计" />
           <DockLink to="/me" icon="👤" label="我的" />
         </nav>

@@ -4,6 +4,7 @@ import { loadBook, type Word } from '@/data/vocab'
 import { loadStory, type StoryScript } from '@/data/stories'
 import { speakWord } from '@/api/client'
 import { useApp } from '@/state/store'
+import { gamifyEnabled } from '@/data/exp'
 import { confetti, toast, buzz } from '@/ui'
 
 /** 与 Quiz 页同源的星级公式 */
@@ -103,7 +104,7 @@ export default function Story() {
           stars,
           words: results,
         })
-        if (!r.queued && r.profile && (r.profile.hearts ?? 5) <= 0) {
+        if (gamifyEnabled() && !r.queued && r.profile && (r.profile.hearts ?? 5) <= 0) {
           toast('红心用完了，回地图用宝石补满吧 💔')
         }
       } catch {

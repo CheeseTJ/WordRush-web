@@ -19,12 +19,54 @@ const ROOT = path.join(HERE, '..')
 const PUBLIC_BOOKS = path.join(ROOT, 'public/books')
 
 const SOURCES = [
-  { file: '/tmp/qwl_CET4_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/CET4_T.json', id: 'cet4', name: 'CET-4 核心词', en: 'CET-4', desc: '大学英语四级 · 全书词库' },
-  { file: '/tmp/qwl_CET6_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/CET6_T.json', id: 'cet6', name: 'CET-6 精选', en: 'CET-6', desc: '大学英语六级 · 全书词库' },
-  { file: '/tmp/qwl_Categorized_TOEFL_Vocabulary_by_Zhanghongyan.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/Categorized_TOEFL_Vocabulary_by_Zhanghongyan.json', id: 'toefl', name: '托福精选', en: 'TOEFL', desc: '词以类记 · 全书词库' },
-  { file: '/tmp/qwl_DuckCircle_IELTS.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/DuckCircle_IELTS.json', id: 'ielts', name: '雅思精选', en: 'IELTS', desc: '雅思核心 · 全书词库' },
-  { file: '/tmp/qwl_GRE3000_3_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/GRE3000_3_T.json', id: 'gre', name: 'GRE 核心', en: 'GRE', desc: 'GRE3000 · 全书词库' },
-  { file: '/tmp/qwl_2025KaoYanHongBaoShu.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/2025KaoYanHongBaoShu.json', id: 'kaoyan', name: '考研红宝书', en: 'POSTGRAD', desc: '2025 红宝书 · 全书词库' },
+  { id: 'primary', name: '小学基础词', en: 'PRIMARY', desc: '人教版小学 3-6 年级 · 全书词库', parts: [
+    { file: '/tmp/qwl_PEPXiaoXue3_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue3_1_T.json' },
+    { file: '/tmp/qwl_PEPXiaoXue3_2_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue3_2_T.json' },
+    { file: '/tmp/qwl_PEPXiaoXue4_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue4_1_T.json' },
+    { file: '/tmp/qwl_PEPXiaoXue4_2_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue4_2_T.json' },
+    { file: '/tmp/qwl_PEPXiaoXue5_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue5_1_T.json' },
+    { file: '/tmp/qwl_PEPXiaoXue5_2_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue5_2_T.json' },
+    { file: '/tmp/qwl_PEPXiaoXue6_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue6_1_T.json' },
+    { file: '/tmp/qwl_PEPXiaoXue6_2_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPXiaoXue6_2_T.json' },
+  ] },
+  { id: 'junior', name: '初中核心词', en: 'JUNIOR', desc: '人教版初中 7-9 年级 · 全书词库', parts: [
+    { file: '/tmp/qwl_PEPChuZhong7_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPChuZhong7_1_T.json' },
+    { file: '/tmp/qwl_PEPChuZhong7_2_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPChuZhong7_2_T.json' },
+    { file: '/tmp/qwl_PEPChuZhong8_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPChuZhong8_1_T.json' },
+    { file: '/tmp/qwl_PEPChuZhong8_2_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPChuZhong8_2_T.json' },
+    { file: '/tmp/qwl_PEPChuZhong9_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPChuZhong9_1_T.json' },
+  ] },
+  { id: 'senior', name: '高中进阶词', en: 'SENIOR', desc: '人教版高中 · 全书词库', parts: [
+    { file: '/tmp/qwl_PEPGaoZhong_1_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_1_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_2_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_2_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_3_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_3_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_4_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_4_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_5_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_5_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_6_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_6_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_7_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_7_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_8_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_8_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_9_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_9_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_10_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_10_T.json' },
+    { file: '/tmp/qwl_PEPGaoZhong_11_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/PEPGaoZhong_11_T.json' },
+  ] },
+  { id: 'cet4', name: 'CET-4 核心词', en: 'CET-4', desc: '大学英语四级 · 全书词库', parts: [
+    { file: '/tmp/qwl_CET4_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/CET4_T.json' },
+  ] },
+  { id: 'cet6', name: 'CET-6 精选', en: 'CET-6', desc: '大学英语六级 · 全书词库', parts: [
+    { file: '/tmp/qwl_CET6_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/CET6_T.json' },
+  ] },
+  { id: 'toefl', name: '托福精选', en: 'TOEFL', desc: '词以类记 · 全书词库', parts: [
+    { file: '/tmp/qwl_Categorized_TOEFL_Vocabulary_by_Zhanghongyan.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/Categorized_TOEFL_Vocabulary_by_Zhanghongyan.json' },
+  ] },
+  { id: 'ielts', name: '雅思精选', en: 'IELTS', desc: '雅思核心 · 全书词库', parts: [
+    { file: '/tmp/qwl_DuckCircle_IELTS.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/DuckCircle_IELTS.json' },
+  ] },
+  { id: 'gre', name: 'GRE 核心', en: 'GRE', desc: 'GRE3000 · 全书词库', parts: [
+    { file: '/tmp/qwl_GRE3000_3_T.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/GRE3000_3_T.json' },
+  ] },
+  { id: 'kaoyan', name: '考研红宝书', en: 'POSTGRAD', desc: '2025 红宝书 · 全书词库', parts: [
+    { file: '/tmp/qwl_2025KaoYanHongBaoShu.json', url: 'https://raw.githubusercontent.com/RealKai42/qwerty-learner/master/public/dicts/2025KaoYanHongBaoShu.json' },
+  ] },
 ]
 
 const PER_UNIT = 10 // 每关词数
@@ -49,17 +91,18 @@ function pickZh(trans) {
 }
 
 function convert(src) {
-  const raw = JSON.parse(fs.readFileSync(src.file, 'utf8'))
-
   const clean = []
   const seen = new Set()
-  for (const item of raw) {
-    const en = (item.name || '').trim().toLowerCase()
-    if (!/^[a-z][a-z-]{1,19}$/.test(en) || seen.has(en)) continue
-    const zh = pickZh(item.trans)
-    if (!zh) continue
-    seen.add(en)
-    clean.push([en, zh])
+  for (const part of src.parts) {
+    const raw = JSON.parse(fs.readFileSync(part.file, 'utf8'))
+    for (const item of raw) {
+      const en = (item.name || '').trim().toLowerCase()
+      if (!/^[a-z][a-z-]{1,19}$/.test(en) || seen.has(en)) continue
+      const zh = pickZh(item.trans)
+      if (!zh) continue
+      seen.add(en)
+      clean.push([en, zh])
+    }
   }
 
   const chapters = []
@@ -105,19 +148,28 @@ async function main() {
 
   for (const src of SOURCES) {
     // 源文件缺失时自动从上游重新下载，保证脚本可重复执行
-    if (!fs.existsSync(src.file)) {
+    for (const part of src.parts) {
+      if (fs.existsSync(part.file)) continue
       try {
-        const res = await fetch(src.url)
+        const res = await fetch(part.url)
         if (!res.ok) throw new Error(String(res.status))
-        fs.writeFileSync(src.file, Buffer.from(await res.arrayBuffer()))
-        console.log(`downloaded: ${src.file}`)
+        fs.writeFileSync(part.file, Buffer.from(await res.arrayBuffer()))
+        console.log(`downloaded: ${part.file}`)
       } catch (e) {
-        console.warn(`跳过（下载失败）: ${src.id}`, e)
-        continue
+        console.warn(`跳过（下载失败）: ${src.id} ${part.file}`, e)
       }
     }
+    if (!src.parts.every((p) => fs.existsSync(p.file))) continue
     convert(src)
   }
+
+  // cet4/cet6 为手编书不走 convert；词性统一由 enrich-pos.mjs 就地补齐
+  const { ensurePosMap, enrichAll } = await import('./enrich-pos.mjs')
+  enrichAll(await ensurePosMap())
+
+  // 例句统一由 enrich-ex.mjs 就地补齐（重建不丢例句）
+  const { enrichAllEx, buildExMap } = await import('./enrich-ex.mjs')
+  enrichAllEx(await buildExMap())
 
   const manifest = buildManifest()
   const out = `/**

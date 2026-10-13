@@ -23,6 +23,28 @@ export function setSpeakEnabled(on: boolean): void {
   }
 }
 
+/* ---------- 游戏化元素（宝箱 / 红心 / 连击 / 宝石任务） ---------- */
+
+const GAMIFY_KEY = 'wordrush.exp.gamify'
+
+/** 游戏化激励层总开关：宝箱、红心、连击、每日任务等。默认关闭（纯学习模式）。 */
+export function gamifyEnabled(): boolean {
+  try {
+    return localStorage.getItem(GAMIFY_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setGamifyEnabled(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(GAMIFY_KEY, '1')
+    else localStorage.removeItem(GAMIFY_KEY)
+  } catch {
+    /* 忽略 */
+  }
+}
+
 /* ---------- 发音音色（Piper voice id） ---------- */
 
 const VOICE_KEY = 'wordrush.tts.voice'
@@ -35,14 +57,16 @@ export interface VoiceOption {
 
 /** 候选音色（Piper 预训练库；file 为打包进前端的试听样例，秒播） */
 export const VOICE_OPTIONS: VoiceOption[] = [
-  { id: 'en_US-amy-medium', name: 'Amy', desc: '默认 · 温暖女声（美音）' },
-  { id: 'en_US-lessac-medium', name: 'Lessac', desc: '清晰女声（美音）' },
+  { id: 'en_US-lessac-medium', name: 'Lessac', desc: '默认 · 清晰女声（美音 · 最自然）' },
+  { id: 'en_US-amy-medium', name: 'Amy', desc: '温暖女声（美音）' },
   { id: 'en_US-ryan-high', name: 'Ryan', desc: '沉稳男声（美音 · 高音质）' },
   { id: 'en_GB-cori-medium', name: 'Cori', desc: '英式女声' },
   { id: 'en_GB-alan-medium', name: 'Alan', desc: '英式男声' },
+  { id: 'en_GB-semaine-medium', name: 'Semaine', desc: '英式女声 · 情绪丰富' },
+  { id: 'en_GB-alba-medium', name: 'Alba', desc: '英式女声 · 清亮活泼' },
 ]
 
-const DEFAULT_VOICE = 'en_US-amy-medium'
+const DEFAULT_VOICE = 'en_US-lessac-medium'
 
 /** 当前选中的音色 id（未设置过 = Amy） */
 export function currentVoice(): string {
@@ -56,6 +80,28 @@ export function currentVoice(): string {
 export function setVoice(id: string): void {
   try {
     localStorage.setItem(VOICE_KEY, id)
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/* ---------- 口语对话：思考模式 ---------- */
+
+const THINKING_KEY = 'wordrush.chat.thinking'
+
+/** 对话思考模式：开启后模型先推理再作答，更准但更慢、更费额度。默认关闭。 */
+export function chatThinking(): boolean {
+  try {
+    return localStorage.getItem(THINKING_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setChatThinking(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(THINKING_KEY, '1')
+    else localStorage.removeItem(THINKING_KEY)
   } catch {
     /* 忽略 */
   }

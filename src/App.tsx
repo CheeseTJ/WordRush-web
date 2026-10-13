@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, useApp } from '@/state/store'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import Login from '@/pages/Login'
 import Home from '@/pages/Home'
 import Map from '@/pages/Map'
@@ -8,6 +9,7 @@ import Review from '@/pages/Review'
 import Stats from '@/pages/Stats'
 import Me from '@/pages/Me'
 import Story from '@/pages/Story'
+import Chat from '@/pages/Chat'
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { authed } = useApp()
@@ -35,6 +37,7 @@ function Shell() {
         <Route index element={<Navigate to="/map" replace />} />
         <Route path="map" element={<Map />} />
         <Route path="review" element={<Review />} />
+        <Route path="chat" element={<Chat />} />
         <Route path="stats" element={<Stats />} />
         <Route path="me" element={<Me />} />
         <Route path="quiz/:unitId" element={<Quiz />} />
@@ -47,8 +50,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <Shell />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <Shell />
+      </AppProvider>
+    </ErrorBoundary>
   )
 }

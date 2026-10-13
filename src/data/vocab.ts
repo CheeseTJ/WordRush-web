@@ -42,7 +42,7 @@ export interface LoadedBook {
   units: { unit: Unit; chapter: Chapter }[]
 }
 
-export const DEFAULT_BOOK = 'cet4'
+export const DEFAULT_BOOK = 'junior'
 const BOOK_KEY = 'wordrush.book'
 
 export const BOOKS: BookMeta[] = BOOK_MANIFEST

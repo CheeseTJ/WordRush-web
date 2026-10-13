@@ -1,4 +1,5 @@
 /** 全局 UI 工具：彩纸、toast、粘土吉祥物 */
+import { useRef } from 'react'
 
 /** 全屏彩纸：在 body 上撒 n 颗色块 */
 export function confetti(n: number, colors: string[]): void {
@@ -92,14 +93,51 @@ export function sfxWrong(): void {
 export function Mascot({
   mood,
   onClick,
+  onLongPress,
   width = 100,
 }: {
   mood?: 'happy' | 'sad'
   onClick?: () => void
+  /** 长按（600ms）触发：用于次要入口（如邀请聊天），不干扰单击 */
+  onLongPress?: () => void
   width?: number
 }) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const firedRef = useRef(false)
+
+  const start = () => {
+    if (!onLongPress) return
+    firedRef.current = false
+    timerRef.current = setTimeout(() => {
+      firedRef.current = true
+      onLongPress()
+    }, 600)
+  }
+  const cancel = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }
+
   return (
-    <button type="button" className={`mascot ${mood ?? ''}`} onClick={onClick} aria-label="吉祥物" style={{ width }}>
+    <button
+      type="button"
+      className={`mascot ${mood ?? ''}`}
+      onClick={() => {
+        if (firedRef.current) return // 长按已触发，抑制随后的 click
+        onClick?.()
+      }}
+      onPointerDown={start}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      onContextMenu={(e) => {
+        if (onLongPress) e.preventDefault() // 移动端长按菜单
+      }}
+      aria-label="吉祥物"
+      style={{ width }}
+    >
       <svg viewBox="0 0 120 120">
         <ellipse cx="60" cy="74" rx="42" ry="40" fill="#7BDD2E" />
         <ellipse cx="60" cy="70" rx="42" ry="34" fill="#8FE844" />

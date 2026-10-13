@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadBook, currentBookId, bookMeta, type LoadedBook } from '@/data/vocab'
 import { availableStories } from '@/data/stories'
 import { useApp } from '@/state/store'
 import { fetchTasks, claimTask, type Task } from '@/api/client'
+import { gamifyEnabled } from '@/data/exp'
 import { confetti, toast, Mascot } from '@/ui'
 
 const PHRASES = [
@@ -35,6 +36,7 @@ export default function Map() {
   const nav = useNavigate()
   const { progress, profile, refresh } = useApp()
   const [bubble, setBubble] = useState('')
+  const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mood, setMood] = useState<'happy' | 'sad' | undefined>()
   const [book, setBook] = useState<LoadedBook | null>(null)
   const [error, setError] = useState('')
@@ -162,7 +164,19 @@ export default function Map() {
     setMood('happy')
     confetti(10, ['#58CC02', '#FFC800', '#1CB0F6'])
     setTimeout(() => setMood(undefined), 900)
-    setTimeout(() => setBubble(''), 2200)
+    if (bubbleTimer.current) clearTimeout(bubbleTimer.current)
+    bubbleTimer.current = setTimeout(() => setBubble(''), 2200)
+  }
+
+  /** 邀请聊天：气泡里带「聊两句」按钮，点按进入口语对话（方案A：戳一戳直达） */
+  function inviteChat() {
+    if (bubbleTimer.current) {
+      clearTimeout(bubbleTimer.current) // 别让上一次 poke 的自动消失关掉邀请
+      bubbleTimer.current = null
+    }
+    setBubble('__chat__')
+    setMood('happy')
+    setTimeout(() => setMood(undefined), 900)
   }
 
   return (
@@ -220,7 +234,7 @@ export default function Map() {
                     style={{ left: `${pos.x}%`, top: pos.y }}
                     onClick={() => {
                       if (!unlocked) return toast('先通过上一关来解锁吧')
-                      if ((profile.hearts ?? 5) <= 0) return toast('红心用完了，等待恢复或用宝石补满 ❤️')
+                      if (gamifyEnabled() && (profile.hearts ?? 5) <= 0) return toast('红心用完了，等待恢复或用宝石补满 ❤️')
                       nav(`/quiz/${unit.id}`)
                     }}
                   >
@@ -235,8 +249,8 @@ export default function Map() {
         )}
       </div>
 
-      {/* 每日任务横幅（迭代三） */}
-      {hasTasks && (
+      {/* 每日任务横幅（迭代三）——游戏化开关关闭时隐藏 */}
+      {gamifyEnabled() && hasTasks && (
         <div className="tasks-banner stg" style={{ ['--d' as string]: 1 }}>
           <div className="tb-title">🎯 每日任务</div>
           <div className="tb-list">
@@ -263,7 +277,7 @@ export default function Map() {
 
       <div className="map-foot">
         <div className="foot-row stg" style={{ ['--d' as string]: 2 }}>
-          <Mascot mood={mood} onClick={poke} />
+          <Mascot mood={mood} onClick={poke} onLongPress={inviteChat} />
           <div className="goal">
             <div className="ring">
               <GoalRing percent={units.length ? (totalStars / (units.length * 3)) * 100 : 0} />
@@ -276,7 +290,18 @@ export default function Map() {
             </div>
           </div>
         </div>
-        {bubble && <div className="bubble show">{bubble}</div>}
+        {bubble &&
+          (bubble === '__chat__' ? (
+            <div className="bubble show chat-invite">
+              <p>Hey! 想用英语聊两句吗？</p>
+              <span className="sub">我陪你练，说错也没关系～</span>
+              <button type="button" className="chat-cta" onClick={() => nav('/chat')}>
+                聊两句 🎧
+              </button>
+            </div>
+          ) : (
+            <div className="bubble show">{bubble}</div>
+          ))}
       </div>
     </div>
   )

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { findUnitSync, loadBook, findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
-import { speakEnabled } from '@/data/exp'
+import { speakEnabled, gamifyEnabled } from '@/data/exp'
 import { assessSpeak, prefetchSpeak, speakWord } from '@/api/client'
 import { useApp } from '@/state/store'
 import { fetchReviewQueue } from '@/api/client'
@@ -28,12 +28,10 @@ interface QItem {
   type: QType
   /** 涉及词（match 为 5 个，其余 1 个） */
   words: Word[]
-  /** 选择类选项（en2zh/zh2en/listen/cloze） */
-  opts?: { t: string; ok: boolean }[]
+  /** 选择类选项（en2zh/zh2en/listen/cloze）；pos 为该选项的词性（英文词选项才有） */
+  opts?: { t: string; ok: boolean; pos?: string }[]
   /** cloze：挖空例句（____ 为空位） */
   prompt?: string
-  /** spell：乱序字母块（含干扰字母） */
-  letters?: string[]
   /** 计分题（match/chest 不计分，纯强化屏） */
   scored: boolean
   /** 到期复习词混入的题（题面带角标） */
@@ -94,6 +92,18 @@ function choiceOpts(correct: string, fakes: string[], rng: () => number = Math.r
   return shuffle([correct, ...uniq], rng).map((t) => ({ t, ok: t === correct }))
 }
 
+/** 英文词选项（正确项 + 3 干扰项），附词性供选项徽标展示 */
+function wordOpts(w: Word, fakes: string[], chapterWords: Word[], rng: () => number = Math.random) {
+  const posMap = new Map(chapterWords.map((x) => [x.en, x.pos]))
+  return choiceOpts(w.en, fakes, rng).map((o) => ({ ...o, pos: o.ok ? w.pos : posMap.get(o.t) }))
+}
+
+/** 词性小徽标（数据缺失时不渲染） */
+function Pos({ p }: { p?: string }) {
+  if (!p) return null
+  return <em className="pos">{p}</em>
+}
+
 /* ==================== 出题工厂 ==================== */
 
 /**
@@ -124,22 +134,18 @@ function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = [], s
     const finalType: QType = real === 'cloze' && !exHasWord(w!) ? 'en2zh' : real
 
     if (finalType === 'spell') {
-      const letters = w!.en.split('')
-      const extra = 2
-      const alphabet = 'abcdefghijklmnopqrstuvwxyz'
-      const noise = Array.from({ length: extra }, () => alphabet[Math.floor(rng() * 26)])
-      items.push({ type: 'spell', words: [w!], letters: shuffle([...letters, ...noise], rng), scored: true })
+      items.push({ type: 'spell', words: [w!], scored: true })
     } else if (finalType === 'listen') {
       // 听音选词：选项为单词
       const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en), rng).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'listen', words: [w!], opts: choiceOpts(w!.en, fakes, rng), scored: true })
+      items.push({ type: 'listen', words: [w!], opts: wordOpts(w!, fakes, chapterWords, rng), scored: true })
     } else if (finalType === 'cloze') {
       const ex = exHasWord(w!)!
       const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en), rng).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'cloze', words: [w!], prompt: clozeSentence(ex, w!.en), opts: choiceOpts(w!.en, fakes, rng), scored: true })
+      items.push({ type: 'cloze', words: [w!], prompt: clozeSentence(ex, w!.en), opts: wordOpts(w!, fakes, chapterWords, rng), scored: true })
     } else if (finalType === 'zh2en') {
       const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.en !== w!.en), rng).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'zh2en', words: [w!], opts: choiceOpts(w!.en, fakes, rng), scored: true })
+      items.push({ type: 'zh2en', words: [w!], opts: wordOpts(w!, fakes, chapterWords, rng), scored: true })
     } else {
       const fakes = shuffle(chapterWords.filter((x) => x.id !== w!.id && x.zh !== w!.zh), rng).slice(0, 3).map((x) => x.zh)
       items.push({ type: 'en2zh', words: [w!], opts: choiceOpts(w!.zh, fakes, rng), scored: true })
@@ -153,10 +159,10 @@ function buildQuiz(words: Word[], chapterWords: Word[], dueWords: Word[] = [], s
     const t = reviewTypes[i % reviewTypes.length]
     if (t === 'listen') {
       const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en), rng).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'listen', words: [w], opts: choiceOpts(w.en, fakes, rng), scored: true, review: true })
+      items.push({ type: 'listen', words: [w], opts: wordOpts(w, fakes, chapterWords, rng), scored: true, review: true })
     } else if (t === 'zh2en') {
       const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.en !== w.en), rng).slice(0, 3).map((x) => x.en)
-      items.push({ type: 'zh2en', words: [w], opts: choiceOpts(w.en, fakes, rng), scored: true, review: true })
+      items.push({ type: 'zh2en', words: [w], opts: wordOpts(w, fakes, chapterWords, rng), scored: true, review: true })
     } else {
       const fakes = shuffle(chapterWords.filter((x) => x.id !== w.id && x.zh !== w.zh), rng).slice(0, 3).map((x) => x.zh)
       items.push({ type: 'en2zh', words: [w], opts: choiceOpts(w.zh, fakes, rng), scored: true, review: true })
@@ -208,6 +214,7 @@ export default function Quiz() {
     setCorrect(0)
     setResults([])
     setDone(null)
+    setAttempts(0)
     replayRef.current = []
     replayDoneRef.current = new Set()
     chestGivenRef.current = false
@@ -265,21 +272,29 @@ export default function Quiz() {
     }
   }, [unitId])
 
+  // 题面生成：仅在本关尚未开答（qi === 0）时允许因 dueWords 到位而重建，
+  // 避免答题中途题面数组被重建引发进度错位甚至越界白屏
+  const qiRef = useRef(0) // qi 镜像：供重建守卫读取最新进度（声明在 qi state 之后赋值）
   useEffect(() => {
-    if (words && chapterWords.length) {
-      setQuestions(buildQuiz(words, chapterWords, dueWords, unitId))
-      // 发音预取（后端 TTS）：进关即拉本关 + 到期词，点按时零延迟
-      prefetchSpeak([...words.map((w) => w.en), ...dueWords.map((w) => w.en)])
-    }
-  }, [words, chapterWords, dueWords])
+    if (!words || !chapterWords.length) return
+    setQuestions((prev) => {
+      if (prev.length && qiRef.current > 0) return prev // 已开答：不动进行中的题面
+      return buildQuiz(words, chapterWords, dueWords, unitId)
+    })
+    // 发音预取（后端 TTS）：进关即拉本关 + 到期词，点按时零延迟
+    prefetchSpeak([...words.map((w) => w.en), ...dueWords.map((w) => w.en)])
+  }, [words, chapterWords, dueWords, unitId])
 
   const [qi, setQi] = useState(0)
+  qiRef.current = qi
+
   const [picked, setPicked] = useState<number | null>(null)
   const [combo, setCombo] = useState(0)
   const [correct, setCorrect] = useState(0)
   const [results, setResults] = useState<WordResult[]>([])
   const [done, setDone] = useState<null | { stars: number; xp: number; queued: boolean }>(null)
   const [questions, setQuestions] = useState<QItem[]>([])
+  const [attempts, setAttempts] = useState(0) // 当前题失败次数（3 次后出解析）
   const busyRef = useRef(false)
   // 关内自适应：错词关尾重现 / 连击宝箱（必须在提前 return 之前声明，保证 Hooks 顺序稳定）
   const replayRef = useRef<string[]>([])
@@ -306,17 +321,53 @@ export default function Quiz() {
   const screenTotal = questions.length
   const scoredTotal = questions.filter((x) => x.scored).length
 
-  /* ---------- 作答统一出口：ok + 该题产出的 words 结果 ---------- */
-  function answer(ok: boolean, wordResults: WordResult[]) {
+  // 题面越界兜底：qi 越过数组末尾时不再渲染（防 undefined 崩溃白屏），给一键重开
+  if (!q) {
+    return (
+      <div className="view">
+        <div className="empty-tip">
+          题目状态异常
+          <button
+            type="button"
+            className="btn"
+            style={{ margin: '14px auto 0', display: 'block' }}
+            onClick={() => {
+              setQi(0)
+              setPicked(null)
+              setCorrect(0)
+              setResults([])
+              setDone(null)
+              setOutOfHearts(false)
+              replayRef.current = []
+              replayDoneRef.current = new Set()
+              chestGivenRef.current = false
+              chestPendingRef.current = false
+              if (words && chapterWords.length) setQuestions(buildQuiz(words, chapterWords, dueWords, unitId))
+              busyRef.current = false
+            }}
+          >
+            重新开始本题
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  /* ---------- 作答统一出口：ok + 该题产出的 words 结果 ----------
+   * 答错不跳题：解锁重试，同一题连续失败 3 次后停在解析屏（正确答案 + 例句）。
+   * final=true 表示子组件已自行完成重试（跟读 3 次），失败直接进解析屏 */
+  function answer(ok: boolean, wordResults: WordResult[], final = false) {
     if (busyRef.current) return
     busyRef.current = true
-    setPicked(-2) // 任意非 null：锁定作答
-    setResults((r) => [...r, ...wordResults])
+    // 选择题保留点选索引（选错的那项标红），其余题型（直接调 answer）锁定为 -2
+    setPicked((p) => (p === null ? -2 : p))
     if (ok) {
+      // 重试成功不再重复记结果（首次失败已记，词已进复习计划）
+      if (attempts === 0) setResults((r) => [...r, ...wordResults])
       setCorrect((c) => c + 1)
       setCombo((c) => {
         const n = c + 1
-        if (n === 5 && !chestGivenRef.current) {
+        if (gamifyEnabled() && n === 5 && !chestGivenRef.current) {
           chestGivenRef.current = true
           chestPendingRef.current = true // 连击 5 里程碑：下一屏插宝箱
         }
@@ -325,16 +376,30 @@ export default function Quiz() {
       confetti(16, ['#58CC02', '#FFC800', '#1CB0F6'])
       sfxCorrect()
       buzz(12)
-    } else {
-      // 错词进关尾重现队列（换题型补漏）
-      if (wordResults.length === 1) replayRef.current.push(wordResults[0].id)
-      setCombo(0)
-      sfxWrong()
-      buzz([26, 44, 26])
-      document.querySelector('.app')?.classList.add('shakeit')
-      setTimeout(() => document.querySelector('.app')?.classList.remove('shakeit'), 440)
+      setTimeout(next, 650)
+      return
     }
-    setTimeout(next, ok ? 650 : 1150)
+    const n = attempts + 1
+    setAttempts(n)
+    if (n === 1) {
+      // 首次失败才记结果（红心/复习计划只吃一次）
+      setResults((r) => [...r, ...wordResults])
+      if (wordResults.length === 1) replayRef.current.push(wordResults[0].id)
+    }
+    setCombo(0)
+    sfxWrong()
+    buzz([26, 44, 26])
+    document.querySelector('.app')?.classList.add('shakeit')
+    setTimeout(() => document.querySelector('.app')?.classList.remove('shakeit'), 440)
+    if (n >= 3 || final) {
+      setPicked(-3) // 停在解析屏，等「继续」按钮
+    } else {
+      // 展示错误反馈后解锁重试
+      setTimeout(() => {
+        busyRef.current = false
+        setPicked(null)
+      }, 950)
+    }
   }
 
   function pickChoice(i: number) {
@@ -365,6 +430,7 @@ export default function Quiz() {
           setQuestions((qs) => [...qs, item])
           setQi((x) => x + 1)
           setPicked(null)
+          setAttempts(0)
           toast('再来一道，加深印象 💪')
           return
         }
@@ -383,6 +449,7 @@ export default function Quiz() {
     }
     setQi((x) => x + 1)
     setPicked(null)
+    setAttempts(0)
   }
 
   async function finish() {
@@ -398,7 +465,7 @@ export default function Quiz() {
       words: results,
     })
     // 红心归零：改出失败结算页（不展示常规结算）
-    if (!r.queued && r.profile && (r.profile.hearts ?? 5) <= 0) {
+    if (gamifyEnabled() && !r.queued && r.profile && (r.profile.hearts ?? 5) <= 0) {
       setOutOfHearts(true)
       buzz([40, 60, 40])
       return
@@ -428,6 +495,7 @@ export default function Quiz() {
     setCorrect(0)
     setResults([])
     setDone(null)
+    setAttempts(0)
     replayRef.current = []
     replayDoneRef.current = new Set()
     chestGivenRef.current = false
@@ -448,7 +516,7 @@ export default function Quiz() {
           <div className="qprog">
             <i style={{ width: `${(qi / screenTotal) * 100}%` }} />
           </div>
-          {combo >= 2 && <span className="combo">🔥 连击 ×{combo}</span>}
+          {gamifyEnabled() && combo >= 2 && <span className="combo">🔥 连击 ×{combo}</span>}
         </div>
 
         {/* 题干区：按题型分发 */}
@@ -457,7 +525,7 @@ export default function Quiz() {
         ) : q.type === 'speak' ? (
           <SpeakCard key={qi} word={q.words[0]} onAnswer={answer} locked={picked !== null} />
         ) : q.type === 'spell' ? (
-          <SpellCard key={qi} word={q.words[0]} letters={q.letters!} onAnswer={answer} locked={picked !== null} />
+          <SpellCard key={qi} word={q.words[0]} onAnswer={answer} locked={picked !== null} />
         ) : q.type === 'match' ? (
           <MatchCard key={qi} words={q.words} onAnswer={answer} locked={picked !== null} />
         ) : (
@@ -473,7 +541,7 @@ export default function Quiz() {
               ) : q.type === 'zh2en' ? (
                 <div className="qword" key={qi}>{q.words[0].zh}</div>
               ) : q.type === 'en2zh' ? (
-                <div className="qword" key={qi}>{q.words[0].en}</div>
+                <div className="qword" key={qi}>{q.words[0].en}<Pos p={q.words[0].pos} /></div>
               ) : null}
               {q.type !== 'listen' && (
                 <button type="button" className="speak" onClick={() => { buzz(8); speak(q.words[0].en) }}>
@@ -499,12 +567,34 @@ export default function Quiz() {
                     disabled={picked !== null}
                   >
                     <span className="num">{String.fromCharCode(65 + i)}</span>
-                    <span>{o.t}</span>
+                    <span>{o.t}<Pos p={o.pos} /></span>
                   </button>
                 )
               })}
             </div>
           </>
+        )}
+
+        {/* 连续 3 次失败：解析屏（正确答案 + 词性 + 例句） */}
+        {picked === -3 && q.type !== 'match' && q.type !== 'chest' && q.words[0] && (
+          <div className="reveal-sheet">
+            <div className="reveal-title">连续 3 次未通过 · 记住这个词</div>
+            <div className="reveal-word">
+              {q.words[0].en} <Pos p={q.words[0].pos} />
+            </div>
+            <div className="reveal-zh">{q.words[0].zh}</div>
+            {q.words[0].ex && <div className="reveal-ex">{q.words[0].ex}</div>}
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                busyRef.current = false
+                next()
+              }}
+            >
+              继续 →
+            </button>
+          </div>
         )}
       </div>
 
@@ -585,6 +675,157 @@ export default function Quiz() {
 
 /* ==================== 题型子组件 ==================== */
 
+/* ---------- 发音不准的字母定位：IPA 音素 → 字母区间 ---------- */
+
+// 引擎返回美式 IPA；归一化长音符与儿化写法，缩小映射表规模
+function normPhone(p: string): string {
+  return p
+    .replace(/ː/g, '')
+    .replace(/ɚ|ɝ/g, 'ər')
+    .replace('əʊ', 'oʊ')
+    .replace('ɪə', 'ɪr')
+    .replace('eə', 'er')
+    .replace('ʊə', 'ʊr')
+}
+
+/** 常见音素 → 字母组合候选（长的在前优先匹配） */
+const PHONE_LETTERS: Record<string, string[]> = {
+  // 元音
+  i: ['ee', 'ea', 'ie', 'ey', 'e', 'i'],
+  ɪ: ['i', 'y', 'u', 'e', 'ie'],
+  e: ['ea', 'ai', 'ie', 'ay', 'e', 'a'],
+  æ: ['a', 'au'],
+  ɑ: ['ar', 'al', 'au', 'a', 'o'],
+  ɔ: ['ore', 'our', 'oor', 'oar', 'aw', 'au', 'or', 'ar', 'a'],
+  ʊ: ['oo', 'ou', 'u', 'o'],
+  u: ['oo', 'ue', 'ew', 'ou', 'u', 'o'],
+  ʌ: ['ou', 'u', 'o'],
+  ə: ['a', 'e', 'i', 'o', 'u', 'ou'],
+  'ɜr': ['ear', 'our', 'ir', 'ur', 'er'],
+  'eɪ': ['ei', 'ey', 'ai', 'ay', 'ea', 'a'],
+  'aɪ': ['igh', 'eigh', 'uy', 'ie', 'y', 'i'],
+  'ɔɪ': ['oi', 'oy'],
+  'aʊ': ['ou', 'ow'],
+  oʊ: ['oe', 'ough', 'oa', 'ow', 'ew', 'o'],
+  'ɪr': ['eer', 'ear', 'ere', 'ier'],
+  er: ['ere', 'air', 'are', 'ear', 'ayer', 'ar'],
+  'ʊr': ['oor', 'our', 'ure'],
+  // 辅音
+  p: ['pp', 'p'],
+  b: ['bb', 'b'],
+  t: ['tt', 'ght', 't'],
+  d: ['dd', 'ed', 'd'],
+  k: ['ck', 'ch', 'cc', 'que', 'q', 'c', 'k'],
+  g: ['gg', 'gu', 'gh', 'g'],
+  f: ['ph', 'ff', 'gh', 'f'],
+  v: ['ve', 'v'],
+  θ: ['th'],
+  ð: ['the', 'th'],
+  s: ['ss', 'se', 'ce', 'ps', 'c', 's'],
+  z: ['zz', 'es', 'se', 'z', 's'],
+  ʃ: ['ch', 'sh', 'ss', 'ti', 'ci', 'ssi'],
+  ʒ: ['si', 'ge', 's'],
+  'tʃ': ['tch', 'ch'],
+  'dʒ': ['dge', 'ge', 'gg', 'j', 'g'],
+  m: ['mm', 'mb', 'mn', 'm'],
+  n: ['nn', 'kn', 'gn', 'pn', 'n'],
+  ŋ: ['ngue', 'ng', 'nk'],
+  l: ['ll', 'le', 'el', 'ol', 'al', 'ul', 'il', 'l'],
+  r: ['rr', 'wr', 'rh', 'r'],
+  w: ['wh', 'w'],
+  j: ['y'],
+  h: ['wh', 'h'],
+  // 音节化辅音（apple 的 əl、button 的 ən 等）
+  'əl': ['le', 'al', 'el', 'ol', 'ul', 'il', 're'],
+  'ər': ['our', 'ore', 'ere', 'er', 'or', 'ar', 'ir', 'ur', 're'],
+  'ən': ['on', 'en', 'an', 'un', 'in', 'n'],
+  'əm': ['om', 'em', 'am', 'm'],
+}
+
+/** 在 word 的 from 位置起为音素找字母区间；对不上时返回 null */
+function matchPhone(word: string, from: number, phone: string): [number, number] | null {
+  for (const c of PHONE_LETTERS[phone] ?? []) {
+    if (word.startsWith(c, from)) return [from, from + c.length]
+  }
+  return from < word.length ? [from, from + 1] : null
+}
+
+/**
+ * 计算单词里发音不准的字母区间。
+ * 引擎的 phones 与 expected_phones 等长按序对应，heard≠expected 即读错；
+ * 音素与字母按候选表顺序贪心对齐，近似定位，够标红提示用。
+ */
+function badLetterSpans(
+  word: string,
+  allPhones: string[],
+  errs: { phones?: { expected: string; heard: string }[] }[],
+  heardPhones: string[],
+): [number, number][] {
+  const w = word.toLowerCase()
+  const errPhones = errs[0]?.phones ?? []
+  if (!w || !allPhones.length) return []
+  const badIdx = new Set<number>()
+  if (errPhones.length === allPhones.length) {
+    // 引擎实测：phones 与 expected_phones 等长按序对应，heard≠expected 即读错（heard 空为漏读）
+    errPhones.forEach((p, i) => {
+      if (normPhone(p.heard) !== normPhone(allPhones[i])) badIdx.add(i)
+    })
+  } else if (!errPhones.length && heardPhones.length === allPhones.length) {
+    // 近音小误差引擎不出 errors（如 ship 读成 sheep）：heard_phones 等长，逐位比对
+    heardPhones.forEach((h, i) => {
+      if (normPhone(h) !== normPhone(allPhones[i])) badIdx.add(i)
+    })
+  } else if (errPhones.length) {
+    // 兜底：phones 只含读错的音素（有序子集），按 expected 匹配下标
+    let k = 0
+    allPhones.forEach((ph, i) => {
+      if (k < errPhones.length && normPhone(errPhones[k].expected) === normPhone(ph)) {
+        badIdx.add(i)
+        k++
+      }
+    })
+  } else {
+    return []
+  }
+  if (!badIdx.size) return []
+  if (badIdx.size === allPhones.length) return [[0, w.length]] // 全错：整词标红
+  const spans: [number, number][] = []
+  let cur = 0
+  allPhones.forEach((ph, i) => {
+    const left = allPhones.length - i
+    let span = matchPhone(w, cur, normPhone(ph))
+    if (!span) span = [cur, Math.min(w.length, cur + Math.max(1, Math.ceil((w.length - cur) / left)))]
+    if (i === allPhones.length - 1 && cur < w.length) span = [cur, w.length] // 末音素吃掉剩余字母（含静音 e）
+    if (badIdx.has(i) && span[1] > span[0]) spans.push(span)
+    cur = span[1]
+  })
+  const merged: [number, number][] = []
+  for (const s of spans) {
+    const last = merged[merged.length - 1]
+    if (last && s[0] <= last[1]) last[1] = Math.max(last[1], s[1])
+    else merged.push([s[0], s[1]])
+  }
+  return merged
+}
+
+/** 单词渲染：读错的字母标红 */
+function renderWord(w: string, spans: [number, number][]): ReactNode {
+  if (!spans.length) return w
+  const out: ReactNode[] = []
+  let cur = 0
+  for (const [s, e] of spans) {
+    if (s > cur) out.push(w.slice(cur, s))
+    out.push(
+      <b key={s} className="bad-letter">
+        {w.slice(Math.max(s, cur), e)}
+      </b>,
+    )
+    cur = Math.max(cur, e)
+  }
+  if (cur < w.length) out.push(w.slice(cur))
+  return out
+}
+
 /** speak：口语跟读——录音上传后端评测（OpenPronounce），失败展示错误并可重试 */
 function SpeakCard({
   word,
@@ -592,17 +833,85 @@ function SpeakCard({
   locked,
 }: {
   word: Word
-  onAnswer: (ok: boolean, r: WordResult[]) => void
+  onAnswer: (ok: boolean, r: WordResult[], final?: boolean) => void
   locked: boolean
 }) {
   const [state, setState] = useState<'idle' | 'rec' | 'upload' | 'done' | 'err'>('idle')
   const [heard, setHeard] = useState('')
   const [score, setScore] = useState(0)
-  const [errs, setErrs] = useState<{ expected: string; actual: string }[]>([])
+  const [tier, setTier] = useState<'yellow' | 'green' | 'red'>('yellow')
+  const [tries, setTries] = useState(0)
+  const [badSpans, setBadSpans] = useState<[number, number][]>([])
   const [errMsg, setErrMsg] = useState('')
+  const ex = word.ex ?? ''
+  const target = ex || word.en // 有例句跟读整句，否则跟读单词
   const answeredRef = useRef(false)
+  const triesRef = useRef(0)
   const recRef = useRef<MediaRecorder | null>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const pressRef = useRef(false) // 是否仍按住麦克风（授权等待中松手则取消）
+  const startAtRef = useRef(0)
+  const mineUrlRef = useRef('') // 本次录音的回放 blobURL
+  const mineAudioRef = useRef<HTMLAudioElement | null>(null)
+  const barsRef = useRef<HTMLSpanElement>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const rafRef = useRef(0)
+  const vizOnRef = useRef(false)
+
+  /** 录音可视化：AnalyserNode 取频谱，5 组频段驱动均衡器柱（跟 listen 题按钮同一视觉语言） */
+  function startViz(stream: MediaStream) {
+    try {
+      const ctx = new AudioContext()
+      audioCtxRef.current = ctx
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 128
+      analyser.smoothingTimeConstant = 0.75
+      ctx.createMediaStreamSource(stream).connect(analyser)
+      const data = new Uint8Array(analyser.frequencyBinCount)
+      const groups: [number, number][] = [[1, 3], [4, 6], [7, 10], [11, 16], [17, 24]]
+      vizOnRef.current = true
+      const loop = () => {
+        if (!vizOnRef.current) return
+        analyser.getByteFrequencyData(data)
+        const bars = barsRef.current?.children
+        if (bars) {
+          for (let i = 0; i < 5; i++) {
+            const [a, b] = groups[i]
+            let sum = 0
+            for (let j = a; j <= b; j++) sum += data[j] ?? 0
+            const v = Math.min(1.15, 0.28 + (sum / (b - a + 1) / 255) * 2.2)
+            ;(bars[i] as HTMLElement).style.transform = `scaleY(${v})`
+          }
+        }
+        rafRef.current = requestAnimationFrame(loop)
+      }
+      loop()
+    } catch {
+      /* 可视化失败不影响录音与评测 */
+    }
+  }
+
+  function stopViz() {
+    vizOnRef.current = false
+    cancelAnimationFrame(rafRef.current)
+    audioCtxRef.current?.close().catch(() => {})
+    audioCtxRef.current = null
+  }
+
+  useEffect(() => () => {
+    const mr = recRef.current
+    if (mr && mr.state !== 'inactive') mr.stop() // 按住中途卸载：释放录音与麦克风
+    stopMine()
+    stopViz()
+  }, [])
+
+  // 句子跟读：进题先听一遍示范（单词跟读保持手动点听）
+  useEffect(() => {
+    if (ex) speak(ex)
+  }, [])
+
+  /** 分数档位：<60 不过（红，重说），60-79 及格（黄），80-100 优秀（绿） */
+  const tierOf = (s: number): 'yellow' | 'green' | 'red' =>
+    s >= 80 ? 'green' : s >= 60 ? 'yellow' : 'red'
 
   function settle(ok: boolean) {
     setState('done')
@@ -615,42 +924,89 @@ function SpeakCard({
     } else {
       buzz([26, 44, 26])
     }
-    setTimeout(() => onAnswer(ok, [result]), 900)
+    // 失败多留点时间看错误对照；final=true：跟读已自行重试完，失败也直接进解析
+    setTimeout(() => onAnswer(ok, [result], true), ok ? 900 : 2600)
   }
 
+  /** 松手（或 pointercancel）：停止录音进入评测 */
   function stopRec() {
-    clearTimeout(timerRef.current)
+    pressRef.current = false
     if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop()
   }
 
-  function record() {
+  /** 停掉回放并释放上一条录音的 blobURL */
+  function stopMine() {
+    mineAudioRef.current?.pause()
+    if (mineUrlRef.current) {
+      URL.revokeObjectURL(mineUrlRef.current)
+      mineUrlRef.current = ''
+    }
+  }
+
+  /** 回放本次录音（流利说式「听我的 / 听示范」对比） */
+  function playMine() {
+    if (!mineUrlRef.current) return
+    const a = mineAudioRef.current ?? (mineAudioRef.current = new Audio())
+    a.src = mineUrlRef.current
+    void a.play().catch(() => {})
+  }
+
+  /** 按下开始录音；若麦克风授权完成前已松手，拿到流后直接释放不录 */
+  function startRec() {
     if (locked || state === 'rec' || state === 'upload' || answeredRef.current) return
     if (!navigator.mediaDevices?.getUserMedia) {
-      setErrMsg('当前环境不支持录音（需要 HTTPS 或 localhost）')
+      setErrMsg('当前环境不支持录音')
       setState('err')
       return
     }
     setErrMsg('')
     setHeard('')
+    stopMine() // 新一次录音：先停掉旧回放
+    pressRef.current = true
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
+        if (!pressRef.current) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
         const mr = new MediaRecorder(stream)
         recRef.current = mr
+        startAtRef.current = Date.now()
         const chunks: Blob[] = []
         mr.ondataavailable = (e) => {
           if (e.data.size) chunks.push(e.data)
         }
         mr.onstop = () => {
+          stopViz()
           stream.getTracks().forEach((t) => t.stop())
+          if (Date.now() - startAtRef.current < 500) {
+            // 按得太短没有有效语音：不计结果，回待机重说
+            setErrMsg('太短了，按住麦克风说话，松手结束')
+            setState('err')
+            return
+          }
           setState('upload')
           const blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' })
-          assessSpeak(word.en, blob)
+          mineUrlRef.current = URL.createObjectURL(blob) // 供评测后回放
+          assessSpeak(target, blob)
             .then((r) => {
+              const t = tierOf(r.score)
               setScore(r.score)
+              setTier(t)
               setHeard(r.transcript)
-              setErrs((r.errors ?? []).map((e) => ({ expected: e.expected, actual: e.actual })))
-              settle(r.ok)
+              // 只有单词模式且不及格才标红字母：及格了还标红只会添乱（引擎对微小偏差也报 heard 差异）
+              setBadSpans(t === 'red' && !ex ? badLetterSpans(word.en, r.expected_phones ?? [], r.errors ?? [], r.heard_phones ?? []) : [])
+              const n = triesRef.current + 1
+              triesRef.current = n
+              setTries(n)
+              if (t === 'red' && n < 3) {
+                // 未达 80 分：不计分不跳题，回待机重说
+                buzz([26, 44, 26])
+                setTimeout(() => setState('idle'), 1500)
+                return
+              }
+              settle(t !== 'red')
             })
             .catch((e) => {
               // 不做浏览器兜底：直接暴露错误便于定位评测链路
@@ -659,16 +1015,17 @@ function SpeakCard({
             })
         }
         mr.onerror = () => {
+          stopViz()
           stream.getTracks().forEach((t) => t.stop())
           setErrMsg('录音失败，请重试')
           setState('err')
         }
         mr.start()
+        startViz(stream)
         setState('rec')
-        // 单词跟读 4 秒足够；提前点按可停止
-        timerRef.current = setTimeout(stopRec, 4000)
       })
       .catch(() => {
+        pressRef.current = false
         setErrMsg('麦克风权限被拒绝，请在浏览器设置中允许')
         setState('err')
       })
@@ -678,174 +1035,208 @@ function SpeakCard({
     <>
       <div className="qcard">
         <div className="qtag">
-          <span className="qtype-badge">🗣️ 口语跟读</span>
+          <span className="qtype-badge">🗣️ {ex ? '跟读句子' : '口语跟读'}</span>
         </div>
-        <div className="qword">{word.en}</div>
-        <div className="spell-zh">{word.zh}</div>
-        <button type="button" className="speak" onClick={() => speak(word.en)}>
+        {ex ? (
+          <>
+            <div className="qword speak-ex" key={word.id}>{ex}</div>
+            <div className="spell-zh">{word.zh}</div>
+          </>
+        ) : (
+          <>
+            <div className="qword">{renderWord(word.en, badSpans)}</div>
+            <div className="spell-zh">{word.zh}</div>
+          </>
+        )}
+        <button type="button" className="speak" onClick={() => speak(target)}>
           🔊 听示范
         </button>
       </div>
       <div className="speak-panel">
         <button
           type="button"
-          className={`mic ${state === 'rec' ? 'rec' : ''} ${state === 'done' ? 'done' : ''}`}
-          onClick={() => {
-            if (state === 'rec') return stopRec()
-            record()
+          className={`mic ${state === 'rec' ? 'rec' : ''} ${state === 'done' ? `done t-${tier}` : ''}`}
+          onPointerDown={(e) => {
+            e.preventDefault() // 防长按选中/拖拽
+            try {
+              e.currentTarget.setPointerCapture(e.pointerId) // 移出按钮也能收到松手
+            } catch {
+              /* 不支持捕获则需在按钮上松手 */
+            }
+            if (state !== 'rec') startRec()
           }}
+          onPointerUp={() => {
+            if (state === 'rec') stopRec()
+            else pressRef.current = false // 授权等待中松手：取消本次
+          }}
+          onPointerCancel={() => {
+            if (state === 'rec') stopRec()
+            else pressRef.current = false
+          }}
+          onContextMenu={(e) => e.preventDefault()}
           disabled={locked || state === 'upload' || state === 'done'}
-          aria-label="按下跟读"
+          aria-label="按住跟读，松手结束"
         >
-          {state === 'rec'
-            ? '🎙️ 读完点我停止'
-            : state === 'upload'
-              ? '⏳ 评测中…'
-              : state === 'done'
-                ? `✓ ${score}分`
-                : '🎙️ 按下跟读'}
+          {state === 'rec' || state === 'upload' ? (
+            <span className="eq-bars" ref={state === 'rec' ? barsRef : undefined} aria-hidden="true"><i /><i /><i /><i /><i /></span>
+          ) : state === 'done' ? (
+            <span className="mic-done" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 12.5 L10 18 L19.5 6.5" /></svg>
+              <b>{score}</b>
+            </span>
+          ) : (
+            <svg className="mic-ico" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="9" y="2.5" width="6" height="12" rx="3" />
+              <path d="M5 11a7 7 0 0 0 14 0" />
+              <path d="M12 18v3.5" />
+            </svg>
+          )}
         </button>
+        {state === 'rec' && <div className="speak-tip">录音中 · 松手结束</div>}
+        {state === 'upload' && <div className="speak-tip">评测中…</div>}
         {state === 'err' && <div className="speak-tip no">⚠️ {errMsg || '评测失败，请重试'}</div>}
-        {state === 'done' && errs.length > 0 && (
-          <div className="speak-heard">
-            🔍 {errs.map((e) => `${e.expected} → ${e.actual || '(漏读)'}`).join(' · ')}
+        {state === 'idle' && tries > 0 && tier === 'red' && (
+          <div className="speak-tip no">
+            上次 {score} 分 · {ex ? '再听一遍示范，慢慢说' : '差一点点，看着标红的字母再读一次'}
           </div>
         )}
         {state === 'done' && heard && (
           <div className="speak-heard">
-            听到：「{heard}」 · {score >= 50 ? '过关！' : '再试一次更接近原词'}
+            听到：「{heard}」 · {tier === 'green' ? '🌟 发音很棒！' : tier === 'yellow' ? '👍 过关！' : '差一点，多练几次'}
           </div>
         )}
-        {state === 'idle' && <div className="speak-tip">点击麦克风，读出上面的单词（4 秒内）</div>}
+        {state === 'done' && (
+          <div className="speak-replay">
+            <button type="button" className="btn" onClick={playMine}>🎧 听我的</button>
+            <button type="button" className="btn alt" onClick={() => speak(target)}>🔊 听示范</button>
+          </div>
+        )}
+        {state === 'idle' && tries === 0 && (
+          <div className="speak-tip">{ex ? '先听示范，按住麦克风跟读句子，松手结束' : '按住麦克风读出单词，松手结束'}</div>
+        )}
       </div>
     </>
   )
 }
 
-/** listen：自动朗读 + 重播 */
+/** listen：自动朗读 + 重播（均衡器胶囊动效，播放中快跳；speakWord 在播放自然结束后 resolve，
+ * 动效随之停止；发音走后端 TTS，audio 单例自动顶掉上一条） */
 function ListenPrompt({ word, autoPlay }: { word: Word; autoPlay?: boolean }) {
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  const play = () => {
+    btnRef.current?.classList.add('is-playing')
+    speak(word.en).finally(() => btnRef.current?.classList.remove('is-playing'))
+  }
+
   useEffect(() => {
-    if (autoPlay) speak(word.en)
-    return () => speechSynthesis.cancel()
+    if (autoPlay) play()
   }, [word.id, autoPlay])
+
   return (
-    <button type="button" className="listen-big" onClick={() => speak(word.en)} aria-label="播放发音">
-      🔊
-      <span>点击重播</span>
+    <button type="button" className="listen-big" aria-label="播放发音" ref={btnRef} onClick={play}>
+      <span className="eq-bars" aria-hidden="true"><i /><i /><i /><i /><i /></span>
     </button>
   )
 }
 
-/** spell：字母块拼词 + 键盘输入双通道 */
+/** 听写答案归一化：小写、弯引号转直、去标点、压空白（句子/单词通用） */
+function normAns(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[^a-z0-9' ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** spell：键盘输入听写——有例句的词升级为听写整句，否则听写单词；进入自动朗读并聚焦拉起键盘 */
 function SpellCard({
   word,
-  letters,
   onAnswer,
   locked,
 }: {
   word: Word
-  letters: string[]
   onAnswer: (ok: boolean, r: WordResult[]) => void
   locked: boolean
 }) {
-  const [slots, setSlots] = useState<number[]>([]) // 已用字母块下标
+  const [val, setVal] = useState('')
   const [wrong, setWrong] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
   const answerRef = useRef(onAnswer)
   answerRef.current = onAnswer
 
-  const target = word.en
-  const solved = slots.length === target.length && slots.map((i) => letters[i]).join('') === target
+  const ex = word.ex ?? ''
+  const target = ex || word.en
 
-  // 键盘通道：字母输入 / 退格 / 回车
+  // 进入题目：自动朗读一遍（与 listen 题同款）
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (locked) return
-      if (e.key === 'Backspace') {
-        e.preventDefault()
-        setSlots((s) => s.slice(0, -1))
-      } else if (e.key === 'Enter') {
-        e.preventDefault()
-        submitRef.current()
-      } else if (/^[a-zA-Z]$/.test(e.key)) {
-        setSlots((s) => {
-          if (s.length >= target.length) return s
-          const ch = e.key.toLowerCase()
-          // 优先未使用的同字母块
-          const used = new Set(s)
-          const idx = letters.findIndex((l, i) => l === ch && !used.has(i))
-          if (idx >= 0) return [...s, idx]
-          return s
-        })
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [letters, target.length, locked])
+    speak(target)
+  }, [])
 
-  const submitRef = useRef<() => void>(() => {})
-  submitRef.current = () => {
-    if (slots.length < target.length || locked) return
-    const ok = slots.map((i) => letters[i]).join('') === target
-    if (ok) {
+  // 解锁（首次进入 / 重试解锁）时聚焦，移动端自动拉起输入法
+  useEffect(() => {
+    if (!locked && !wrong) inputRef.current?.focus()
+  }, [locked, wrong])
+
+  const submit = () => {
+    if (locked || wrong) return
+    if (normAns(val) === normAns(target)) {
       onAnswer(true, [{ id: word.id, ok: true }])
     } else {
       setWrong(true)
       buzz([26, 44, 26])
       setTimeout(() => {
         setWrong(false)
-        setSlots([])
+        setVal('')
         answerRef.current(false, [{ id: word.id, ok: false }])
       }, 700)
     }
   }
 
-  // 块填满自动判分
-  useEffect(() => {
-    if (slots.length === target.length && !wrong) {
-      const t = setTimeout(() => submitRef.current(), 250)
-      return () => clearTimeout(t)
+  const onChange = (raw: string) => {
+    if (ex) {
+      // 句子：允许空格与撇号
+      setVal(raw.toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' '))
+    } else {
+      setVal(raw.replace(/[^a-zA-Z]/g, '').toLowerCase())
     }
-  }, [slots.length, target.length, wrong])
-
-  const used = new Set(slots)
+  }
 
   return (
     <>
       <div className="qcard">
         <div className="qtag">
-          <span className="qtype-badge">⌨️ 拼写单词</span>
+          <span className="qtype-badge">{ex ? '🎧 听写句子' : '⌨️ 拼写单词'}</span>
         </div>
         <div className="qword spell-zh">{word.zh}</div>
-        <button type="button" className="speak" onClick={() => { buzz(8); speak(word.en) }}>
-          🔊 听发音
+        <button type="button" className="speak" onClick={() => { buzz(8); speak(target) }}>
+          {ex ? '🔊 再听一遍' : '🔊 听发音'}
         </button>
-        {/* 字母槽 */}
-        <div className={`letter-slots ${wrong ? 'no' : ''} ${solved ? 'ok' : ''}`}>
-          {Array.from({ length: target.length }).map((_, i) => (
-            <span key={i} className={`letter-slot ${i < slots.length ? 'filled' : ''}`}>
-              {i < slots.length ? letters[slots[i]] : ''}
-            </span>
-          ))}
-        </div>
+        <input
+          ref={inputRef}
+          className={`spell-input ${wrong ? 'no' : ''} ${ex ? 'wide' : ''}`}
+          value={val}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              submit()
+            }
+          }}
+          disabled={locked || wrong}
+          autoCapitalize="off"
+          autoCorrect="off"
+          autoComplete="off"
+          spellCheck={false}
+          enterKeyHint="done"
+          aria-label={ex ? '输入你听到的句子' : '输入单词拼写'}
+          placeholder={ex ? '听写你听到的句子' : '听发音，输入英文单词'}
+        />
       </div>
-      {/* 字母块 */}
-      <div className="letter-tiles">
-        {letters.map((l, i) => (
-          <button
-            key={i}
-            type="button"
-            className={`letter-tile ${used.has(i) ? 'used' : ''}`}
-            disabled={used.has(i) || locked}
-            onClick={() => {
-              if (slots.length >= target.length) return
-              buzz(6)
-              setSlots((s) => [...s, i])
-            }}
-          >
-            {l}
-          </button>
-        ))}
-      </div>
+      <button type="button" className="btn spell-submit" disabled={locked || wrong || !val.trim()} onClick={submit}>
+        检查
+      </button>
     </>
   )
 }
@@ -916,9 +1307,9 @@ function MatchCard({
               type="button"
               className={`match-cell ${solved.has(w.id) ? 'solved' : ''} ${selL === w.id ? 'sel' : ''} ${wrongShake && shakeId === w.id ? 'no' : ''}`}
               disabled={solved.has(w.id) || locked || answeredRef.current}
-              onClick={() => { buzz(6); setSelL(w.id) }}
+              onClick={() => { buzz(6); speak(w.en); setSelL(w.id) }}
             >
-              {w.en}
+              {w.en}<Pos p={w.pos} />
             </button>
           ))}
         </div>
@@ -957,6 +1348,7 @@ function ChestCard({ onDone }: { onDone: () => void }) {
   )
 }
 
-function speak(text: string): void {
-  speakWord(text).catch((e) => toast(e instanceof Error ? e.message : '发音失败，请稍后重试'))
+function speak(text: string): Promise<void> {
+  // catch 后转为正常 resolve：调用方的 .finally（停动效）在播放结束或失败时都会执行
+  return speakWord(text).catch((e) => toast(e instanceof Error ? e.message : '发音失败，请稍后重试'))
 }

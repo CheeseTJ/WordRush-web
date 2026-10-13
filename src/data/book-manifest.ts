@@ -51,6 +51,15 @@ export const BOOK_MANIFEST: BookMeta[] = [
     "chapters": 40
   },
   {
+    "id": "junior",
+    "name": "初中核心词",
+    "en": "JUNIOR",
+    "desc": "人教版初中 7-9 年级 · 全书词库",
+    "words": 1827,
+    "units": 183,
+    "chapters": 37
+  },
+  {
     "id": "kaoyan",
     "name": "考研红宝书",
     "en": "POSTGRAD",
@@ -58,6 +67,24 @@ export const BOOK_MANIFEST: BookMeta[] = [
     "words": 6326,
     "units": 633,
     "chapters": 127
+  },
+  {
+    "id": "primary",
+    "name": "小学基础词",
+    "en": "PRIMARY",
+    "desc": "人教版小学 3-6 年级 · 全书词库",
+    "words": 593,
+    "units": 60,
+    "chapters": 12
+  },
+  {
+    "id": "senior",
+    "name": "高中进阶词",
+    "en": "SENIOR",
+    "desc": "人教版高中 · 全书词库",
+    "words": 2906,
+    "units": 291,
+    "chapters": 59
   },
   {
     "id": "toefl",

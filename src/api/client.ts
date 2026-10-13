@@ -208,7 +208,18 @@ export interface SpeakAssess {
   score: number
   transcript: string
   ok: boolean
-  errors?: { word: string; expected: string; actual: string; confidence: number }[]
+  errors?: {
+    word: string
+    expected: string
+    actual: string
+    confidence: number
+    /** 逐音素对照：heard 与 expected 不同即读错，heard 为空是漏读 */
+    phones?: { expected: string; heard: string }[]
+  }[]
+  /** 目标词完整音素序列（IPA，用于把读错音素定位到字母） */
+  expected_phones?: string[]
+  /** 实际听到的音素序列（近音小误差时 errors 为空，用它逐位比对） */
+  heard_phones?: string[]
 }
 
 /**
@@ -265,7 +276,18 @@ export async function speakWord(text: string): Promise<void> {
   } else {
     speakAudio.currentTime = 0
   }
-  await speakAudio.play()
+  try {
+    await speakAudio.play()
+  } catch (e) {
+    // 良性中断（Chrome AbortError）：上一条 play 还在落地中就被新播放 pause 顶掉，
+    // 属单例顶替的预期行为，静默忽略；自动朗读被浏览器策略拦截同理（有大按钮可手动重播）。
+    if (e instanceof DOMException && (e.name === 'AbortError' || e.name === 'NotAllowedError')) return
+    throw e
+  }
+  // Promise 挂到自然播放结束：调用方（如听音题的均衡器动效）据此停止
+  await new Promise<void>((resolve) => {
+    speakAudio!.onended = () => resolve()
+  })
 }
 
 /** 试听指定音色（音色弹层用）：播放打包进前端的预合成样例，秒播，播完才 resolve */
@@ -287,4 +309,63 @@ export function prefetchSpeak(texts: string[]): void {
     fetchSpeakUrl(t)
       .catch(() => speakCache.delete(k)) // 预取失败静默，真正播放时会重试并暴露错误
   }
+}
+
+/* ---------- 口语对话（语音 → AI → 语音） ---------- */
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+/** 上传整段录音，交给后端做整句转写（口语对话输入）。服务不可用抛 status=503。 */
+export async function chatStt(blob: Blob): Promise<string> {
+  const fd = new FormData()
+  fd.append('audio', blob, 'recording.webm')
+  const data = await authFetch<{ transcript: string }>('/api/v1/chat/stt', { method: 'POST', form: fd })
+  return data.transcript
+}
+
+/** 发送对话消息，返回助手回复文本。thinking 控制思考模式；服务未开启抛 status=503。 */
+export async function chatSend(messages: ChatMessage[], thinking = false): Promise<string> {
+  const data = await authFetch<{ reply: string }>('/api/v1/chat', {
+    method: 'POST',
+    body: { messages, thinking },
+  })
+  return data.reply
+}
+
+/** 朗读一段文本：Piper 单次上限 240 字，按句切分后顺序播放（复用当前音色）。 */
+export async function speakText(text: string): Promise<void> {
+  for (const part of splitForTts(text, 240)) {
+    await speakWord(part)
+  }
+}
+
+/** 把长文本按句切成不超过 max 字的片段（超长单句硬切）。 */
+function splitForTts(text: string, max: number): string[] {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (!clean) return []
+  const sentences = clean.match(/[^.!?]+[.!?]*/g) ?? [clean]
+  const parts: string[] = []
+  let buf = ''
+  for (const raw of sentences) {
+    const seg = raw.trim()
+    if (!seg) continue
+    if (seg.length > max) {
+      if (buf) {
+        parts.push(buf)
+        buf = ''
+      }
+      for (let i = 0; i < seg.length; i += max) parts.push(seg.slice(i, i + max))
+      continue
+    }
+    if (buf && buf.length + seg.length + 1 > max) {
+      parts.push(buf)
+      buf = ''
+    }
+    buf = buf ? `${buf} ${seg}` : seg
+  }
+  if (buf) parts.push(buf)
+  return parts
 }

@@ -454,6 +454,42 @@ button:disabled {
   transform: none;
 }
 
+/* 聊天邀请气泡（方案A：戳一戳直达） */
+.chat-invite {
+  padding: 14px 16px;
+  font-size: 13px;
+  max-width: 230px;
+}
+.chat-invite p {
+  font-weight: 900;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.chat-invite .sub {
+  display: block;
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+.chat-cta {
+  border: none;
+  background: var(--green);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 13px;
+  border-radius: 12px;
+  padding: 9px 16px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--green-d);
+  transition: transform 0.12s var(--spr);
+}
+.chat-cta:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--green-d);
+}
+
 /* ---------- 今日目标卡 ---------- */
 .goal {
   border-radius: 24px;

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BOOKS, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vocab'
-import { currentVoice, setVoice, VOICE_OPTIONS } from '@/data/exp'
+import { currentVoice, setVoice, VOICE_OPTIONS, gamifyEnabled, setGamifyEnabled } from '@/data/exp'
 import { previewVoice, resetSpeakCache } from '@/api/client'
 import { useApp } from '@/state/store'
 import { toast, confetti, buzz } from '@/ui'
@@ -16,6 +16,7 @@ export default function Me() {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [voice, setVoiceId] = useState(currentVoice())
   const [voiceOpen, setVoiceOpen] = useState(false)
+  const [gamify, setGamify] = useState(gamifyEnabled())
   const [previewing, setPreviewing] = useState<string | null>(null)
   const activeBook = BOOKS.find((b) => b.id === bookId) ?? BOOKS[0]
 
@@ -108,6 +109,25 @@ export default function Me() {
             <span className="arr">
               {VOICE_OPTIONS.find((v) => v.id === voice)?.name ?? '默认'} ›
             </span>
+          </button>
+          <button
+            type="button"
+            className="rw"
+            onClick={() => {
+              const v = !gamify
+              setGamify(v)
+              setGamifyEnabled(v)
+              buzz(8)
+              toast(v ? '游戏化元素已开启 🎮' : '游戏化元素已关闭')
+            }}
+          >
+            <div className="l">
+              <span className="ic" style={{ background: 'var(--coral-l, #FFE3E3)' }}>
+                🎮
+              </span>
+              游戏化元素
+            </div>
+            <span className="arr">{gamify ? '宝箱 / 红心 / 任务 · 开' : '关'}</span>
           </button>
         </div>
 
