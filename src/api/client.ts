@@ -173,7 +173,7 @@ export async function fetchStats(): Promise<Stats> {
 /* ---------- 迭代三：经济系统（每日任务 / 红心 / 冻结） ---------- */
 
 export interface Task {
-  id: 'new' | 'review' | 'star' | string
+  id: 'new' | 'review' | 'star' | 'chat' | string
   label: string
   target: number
   current: number
@@ -333,6 +333,64 @@ export async function chatSend(messages: ChatMessage[], thinking = false): Promi
     body: { messages, thinking },
   })
   return data.reply
+}
+
+/* ---------- 迭代五：情景对话（场景 + 目标 + 有限回合 + 结算） ---------- */
+
+export interface ScenarioChatResult {
+  reply: string
+  /** 本回合后各目标完成情况；模型漏标记时为 null（调用方保持原状） */
+  goals: boolean[] | null
+  /** 全部目标达成，场景可以自然收尾 */
+  done: boolean
+}
+
+/**
+ * 情景对话发言：scenario_id 定位剧本（人设在服务端），turn 是本次回合序号（1 起）。
+ * 超过回合上限后端直接拒绝（code=turns_exhausted）。
+ */
+export async function scenarioChat(
+  scenarioId: string,
+  turn: number,
+  messages: ChatMessage[],
+  thinking = false,
+): Promise<ScenarioChatResult> {
+  return authFetch<ScenarioChatResult>('/api/v1/chat', {
+    method: 'POST',
+    body: { messages, thinking, scenario_id: scenarioId, turn },
+  })
+}
+
+/** 情景对话结算：星级 + XP/宝石（服务端按达成率推算并发放） */
+export interface ChatSummary {
+  stars: number
+  xp_gained: number
+  gems_gained: number
+  comment: string
+  phrases: { en: string; zh: string }[]
+  fixes: { bad: string; good: string; why: string }[]
+}
+
+/** 提交整场对话做批改结算（同一请求完成发奖与每日任务计数）。 */
+export async function chatSummary(
+  scenarioId: string,
+  messages: ChatMessage[],
+  goalsHit: number,
+  goalsTotal: number,
+  turnsUsed: number,
+  thinking = false,
+): Promise<ChatSummary> {
+  return authFetch<ChatSummary>('/api/v1/chat/summary', {
+    method: 'POST',
+    body: {
+      scenario_id: scenarioId,
+      messages,
+      goals_hit: goalsHit,
+      goals_total: goalsTotal,
+      turns_used: turnsUsed,
+      thinking,
+    },
+  })
 }
 
 /** 朗读一段文本：Piper 单次上限 240 字，按句切分后顺序播放（复用当前音色）。 */

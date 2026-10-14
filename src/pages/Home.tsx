@@ -83,7 +83,7 @@ export default function Home() {
         <nav className="dock stg" style={{ ['--d' as string]: 3 }}>
           <DockLink to="/map" icon="🏠" label="学习" />
           <DockLink to="/review" icon="💪" label="复习" />
-          <DockLink to="/chat" icon="🗣️" label="对话" />
+          <DockLink to="/scenarios" icon="🗣️" label="情景" />
           <DockLink to="/stats" icon="📊" label="统计" />
           <DockLink to="/me" icon="👤" label="我的" />
         </nav>

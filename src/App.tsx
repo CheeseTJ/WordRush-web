@@ -9,7 +9,8 @@ import Review from '@/pages/Review'
 import Stats from '@/pages/Stats'
 import Me from '@/pages/Me'
 import Story from '@/pages/Story'
-import Chat from '@/pages/Chat'
+import Scenarios from '@/pages/Scenarios'
+import ScenarioChat from '@/pages/ScenarioChat'
 
 function Gate({ children }: { children: React.ReactNode }) {
   const { authed } = useApp()
@@ -37,7 +38,9 @@ function Shell() {
         <Route index element={<Navigate to="/map" replace />} />
         <Route path="map" element={<Map />} />
         <Route path="review" element={<Review />} />
-        <Route path="chat" element={<Chat />} />
+        <Route path="chat" element={<Navigate to="/scenarios" replace />} />
+        <Route path="scenarios" element={<Scenarios />} />
+        <Route path="chat/:sid" element={<ScenarioChat />} />
         <Route path="stats" element={<Stats />} />
         <Route path="me" element={<Me />} />
         <Route path="quiz/:unitId" element={<Quiz />} />

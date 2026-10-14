@@ -295,7 +295,7 @@ export default function Map() {
             <div className="bubble show chat-invite">
               <p>Hey! 想用英语聊两句吗？</p>
               <span className="sub">我陪你练，说错也没关系～</span>
-              <button type="button" className="chat-cta" onClick={() => nav('/chat')}>
+              <button type="button" className="chat-cta" onClick={() => nav('/scenarios')}>
                 聊两句 🎧
               </button>
             </div>
