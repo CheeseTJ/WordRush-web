@@ -96,6 +96,10 @@
   padding: 3px 9px;
   border: 1.5px solid;
   white-space: nowrap; /* 中文标签不许内部折行，保证所有卡片标签行行数一致、高度一致 */
+  /* 徽标内容垂直居中：CJK/拉丁/emoji 混排字体基线各异，行内排版会导致文字高低不齐 */
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
 }
 .tag.lvl { background: var(--blue-l); border-color: var(--blue); color: var(--blue-d); }
 .tag.goal { background: var(--green-l); border-color: var(--green); color: var(--green-d); }
