@@ -40,7 +40,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // 有离线队列先重放，再拉最新数据
       await flushPending()
       const [prof, units] = await Promise.all([fetchProfile(), fetchProgress()])
-      setProfile(prof)
+      if (prof) setProfile(prof)
       setProgress(new Map(units.map((u) => [u.unit_id, u])))
       setPending(pendingCount())
       setAuthed(true)

@@ -98,6 +98,9 @@ async function parse<T>(res: Response): Promise<T> {
     const err: ApiErrBody = data ?? {}
     throw new ApiError(res.status, err.code || err.error || 'request_failed', err.message || err.error || `请求失败 ${res.status}`)
   }
+  // 200 但响应体不是 JSON（如网关误回 SPA 的 HTML）：抛错走降级路径，
+  // 绝不能把 null 当数据返回——曾导致全局 profile 被写成 null 而白屏崩溃
+  if (data === null) throw new ApiError(502, 'bad_response_body', '响应体不是合法 JSON')
   return data as T
 }
 

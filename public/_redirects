@@ -1,9 +1,11 @@
 # Cloudflare Pages 重定向/代理规则（构建时从 public/ 拷到 dist 根）
 #
-# 业务 API 同域代理：前端代码全部用相对路径 /api/v1/...，Pages 收到后
-# 转发给本机 cloudflared 隧道暴露的 wordrush-api，浏览器视角是同源请求，
-# 无需 CORS，PWA 的 /api/v1/ 运行时缓存照常工作。
-/api/*   https://eng.june-t.top/:splat   200
+# 注意：Pages 的 _redirects 只支持本站相对路径代理，不能代理外部域名
+# （官方文档：Proxying will only support relative URLs on your site），
+# 此前写在这里的 /api/* -> https://eng.june-t.top 规则会被忽略，
+# 导致所有 /api 请求落进 SPA 回退返回 HTML(200)，前端 JSON 解析得到 null 而崩溃。
+# API 同域代理改由 functions/api/[[route]].ts（Pages Function）实现；
+# 该 Function 仅在 wrangler 直传部署时生效，否则前端经 VITE_API_BASE 直连隧道域名。
 
 # SPA 回退：history 路由刷新直达（静态资源命中文件时优先于本规则）
 /*       /index.html                              200

@@ -6,8 +6,20 @@
  *  - 关卡提交断网时进入本地队列，恢复在线后自动重放
  */
 
-import { authFetch } from './ucenter'
+import { authFetch as rawAuthFetch } from './ucenter'
 import { currentVoice } from '@/data/exp'
+
+/**
+ * 业务 API 根地址：缺省同源（本地 dev 走 Vite 代理；wrangler 部署时由
+ * functions/api/[[route]].ts 同域反代）。也可在构建时用 VITE_API_BASE
+ * 指向隧道域名直连——dashboard 拖拽直传不支持 Functions 时靠它兜底，
+ * 后端 CORS 白名单已放行站点域名。
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/+$/, '')
+
+function authFetch<T>(url: string, options?: Parameters<typeof rawAuthFetch>[1]): Promise<T> {
+  return rawAuthFetch<T>(API_BASE + url, options)
+}
 
 export interface Profile {
   xp: number
