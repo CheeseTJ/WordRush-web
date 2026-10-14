@@ -1,0 +1,9 @@
+# Cloudflare Pages 重定向/代理规则（构建时从 public/ 拷到 dist 根）
+#
+# 业务 API 同域代理：前端代码全部用相对路径 /api/v1/...，Pages 收到后
+# 转发给本机 cloudflared 隧道暴露的 wordrush-api，浏览器视角是同源请求，
+# 无需 CORS，PWA 的 /api/v1/ 运行时缓存照常工作。
+/api/*   https://eng.june-t.top/:splat   200
+
+# SPA 回退：history 路由刷新直达（静态资源命中文件时优先于本规则）
+/*       /index.html                              200
