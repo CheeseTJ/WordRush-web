@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { claimTask, fetchTasks, type Task } from '@/api/client'
 import { dailyScenarios, dayLabel, scenarioDoneToday, type Scenario } from '@/data/scenarios'
+import { gamifyEnabled } from '@/data/exp'
 import { useApp } from '@/state/store'
 import { toast } from '@/ui'
 import '@/styles-scenario.css'
@@ -65,6 +66,7 @@ export default function Scenarios() {
   const bothDone = today.every((s) => doneIds.includes(s.id))
 
   useEffect(() => {
+    if (!gamifyEnabled()) return // 纯学习模式：不拉任务也不展示任务条
     void fetchTasks()
       .then(setTasks)
       .catch(() => {
@@ -106,7 +108,8 @@ export default function Scenarios() {
           scn={bonus}
           done={doneIds.includes(bonus.id)}
           locked={!bothDone}
-          lockedText="完成今日 2 个场景后解锁"
+          // 提示文案刻意与「满星 +15 XP」同宽级：保证锁定/解锁两态标签都单行排布，卡片高度一致
+          lockedText="完成2场解锁"
           onStart={() => (bothDone ? open(bonus.id) : toast('先完成今日 2 个场景，解锁神秘情景 🔒'))}
         />
       </div>
@@ -115,7 +118,7 @@ export default function Scenarios() {
         <span>🎬 每场固定 6 轮 · 达成目标拿星星 · 结算有专属点评</span>
       </div>
 
-      {chatTask && (
+      {gamifyEnabled() && chatTask && (
         <div className="scn-task">
           <span className="ic">📋</span>
           <span className="tx">
