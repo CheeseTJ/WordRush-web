@@ -1,5 +1,16 @@
 /** 全局 UI 工具：彩纸、toast、粘土吉祥物 */
-import { useRef } from 'react'
+import { useRef, type ComponentType } from 'react'
+import {
+  AirplaneTakeoff,
+  Bag,
+  Bed,
+  Briefcase,
+  Coffee,
+  ForkKnife,
+  HouseLine,
+  Stethoscope,
+  type IconProps,
+} from '@phosphor-icons/react'
 
 /** 全屏彩纸：在 body 上撒 n 颗色块 */
 export function confetti(n: number, colors: string[]): void {
@@ -164,4 +175,18 @@ export function StarSVG(): React.ReactNode {
       <path d="M24 4l6.2 12.9L44 19l-10 9.6L36.6 43 24 36.4 11.4 43 14 28.6 4 19l13.8-2.1z" />
     </svg>
   )
+}
+
+/* ---------- 场景图标（Phosphor · fill） ---------- */
+
+/** 场景 icon 名（scenarios.ts 的 Scenario.icon）→ Phosphor 组件 */
+export const SCN_ICONS: Record<string, ComponentType<IconProps>> = {
+  coffee: Coffee,
+  'airplane-takeoff': AirplaneTakeoff,
+  bed: Bed,
+  'fork-knife': ForkKnife,
+  bag: Bag,
+  stethoscope: Stethoscope,
+  briefcase: Briefcase,
+  'house-line': HouseLine,
 }

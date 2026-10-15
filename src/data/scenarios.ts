@@ -9,7 +9,8 @@
 
 export interface Scenario {
   id: string
-  emoji: string
+  /** 场景图标名（映射见 ui.tsx 的 SCN_ICONS，Phosphor Icons） */
+  icon: string
   title: string
   en: string
   level: string
@@ -29,7 +30,7 @@ export const SCENARIO_TURNS = 6
 export const SCENARIOS: Scenario[] = [
   {
     id: 'coffee',
-    emoji: '☕',
+    icon: 'coffee',
     title: '咖啡店点单',
     en: 'AT THE COFFEE SHOP',
     level: 'A2',
@@ -41,7 +42,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'airport',
-    emoji: '🛫',
+    icon: 'airplane-takeoff',
     title: '机场值机',
     en: 'CHECKING IN AT THE AIRPORT',
     level: 'A2+',
@@ -53,7 +54,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'hotel',
-    emoji: '🏨',
+    icon: 'bed',
     title: '酒店入住',
     en: 'HOTEL CHECK-IN',
     level: 'A2',
@@ -65,7 +66,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'restaurant',
-    emoji: '🍜',
+    icon: 'fork-knife',
     title: '餐厅点餐',
     en: 'ORDERING AT A RESTAURANT',
     level: 'A2',
@@ -77,7 +78,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'shopping',
-    emoji: '🛍️',
+    icon: 'bag',
     title: '退换货',
     en: 'RETURNING AN ITEM',
     level: 'B1',
@@ -89,7 +90,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'doctor',
-    emoji: '🩺',
+    icon: 'stethoscope',
     title: '看医生',
     en: 'AT THE DOCTOR',
     level: 'B1',
@@ -101,7 +102,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'interview',
-    emoji: '💼',
+    icon: 'briefcase',
     title: '面试自我介绍',
     en: 'JOB INTERVIEW',
     level: 'B1+',
@@ -113,7 +114,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: 'rent',
-    emoji: '🏠',
+    icon: 'house-line',
     title: '租房看房',
     en: 'VIEWING AN APARTMENT',
     level: 'B1+',

@@ -9,9 +9,26 @@ import {
   type ChatSummary,
 } from '@/api/client'
 import { SCENARIOS, markScenarioDone } from '@/data/scenarios'
-import { chatThinking, setChatThinking } from '@/data/exp'
+import { chatThinking, setChatThinking, listenMode, setListenMode, voiceFirst, setVoiceFirst } from '@/data/exp'
+import {
+  BookOpen,
+  Brain,
+  CaretLeft,
+  Check,
+  Confetti,
+  Diamond,
+  Ear,
+  Keyboard,
+  Lightning,
+  Lightbulb,
+  Microphone,
+  PaperPlaneRight,
+  SpeakerHigh,
+  Stop,
+  Target,
+} from '@phosphor-icons/react'
+import { SCN_ICONS, toast, buzz } from '@/ui'
 import { useApp } from '@/state/store'
-import { toast, buzz } from '@/ui'
 import '@/styles-chat.css'
 import '@/styles-scenario.css'
 
@@ -63,6 +80,12 @@ export default function ScenarioChat() {
   const [draft, setDraft] = useState('')
   const [thinking, setThinking] = useState(chatThinking)
   const [summary, setSummary] = useState<ChatSummary | null>(null)
+  // 听力模式：AI 回复只播声音不出字（点气泡看该条原文）
+  const [listen, setListen] = useState(listenMode)
+  // 语音优先：输入条默认只留麦克风，点键盘才切打字
+  const [voiceInput, setVoiceInput] = useState(voiceFirst)
+  const [revealed, setRevealed] = useState<number[]>([])
+  const [showStarters, setShowStarters] = useState(false)
 
   const recRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -85,10 +108,18 @@ export default function ScenarioChat() {
     setPhase('idle')
     setDraft('')
     setView('chat')
+    setRevealed([])
+    setShowStarters(false)
   }
 
   useEffect(() => {
     reset()
+    // 开场白自动播报：进页即出声（浏览器自动播放策略拦截时静默结束，点气泡可重播）
+    if (!scenario) return
+    setPhase('speak')
+    void speakText(scenario.opening)
+      .catch(() => {})
+      .finally(() => setPhase('idle'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenario?.id])
 
@@ -113,6 +144,19 @@ export default function ScenarioChat() {
     setThinking(next)
     setChatThinking(next)
     toast(next ? '已开启深思：想清楚再答，稍慢' : '已切换快速：秒回更省额度')
+  }
+
+  /** 听力模式：AI 只出声不出字，点气泡看该条原文 */
+  function toggleListen() {
+    const next = !listen
+    setListen(next)
+    setListenMode(next)
+    toast(next ? '👂 听力模式：只听声音，点气泡看原文' : '📖 已显示 AI 文字')
+  }
+
+  /** 听力模式下展开某条 AI 气泡的原文 */
+  function revealMsg(i: number) {
+    setRevealed((r) => (r.includes(i) ? r : [...r, i]))
   }
 
   /* ---------- 语音输入（与口语跟读同一套录音 → STT 流程） ---------- */
@@ -266,8 +310,12 @@ export default function ScenarioChat() {
         </div>
 
         <div className="scn-reward-row">
-          <span className="scn-reward">⚡ +{summary.xp_gained} XP</span>
-          <span className="scn-reward b">💎 +{summary.gems_gained}</span>
+          <span className="scn-reward">
+            <Lightning weight="fill" size={14} /> +{summary.xp_gained} XP
+          </span>
+          <span className="scn-reward b">
+            <Diamond weight="fill" size={14} /> +{summary.gems_gained}
+          </span>
         </div>
 
         <div className="scn-card">
@@ -285,7 +333,7 @@ export default function ScenarioChat() {
                   <i>{p.zh}</i>
                 </span>
                 <button type="button" className="scn-hear" title="跟读" onClick={() => void speakText(p.en)}>
-                  🔊
+                  <SpeakerHigh weight="fill" size={15} />
                 </button>
               </div>
             ))}
@@ -326,10 +374,14 @@ export default function ScenarioChat() {
     <div className="view chat scn-chat">
       <div className="chat-head">
         <button type="button" className="scn-back" onClick={() => nav('/scenarios')} title="返回场景列表">
-          ‹
+          <CaretLeft weight="fill" size={19} />
         </button>
         <b>
-          {scenario.emoji} {scenario.title}
+          {(() => {
+            const Ico = SCN_ICONS[scenario.icon]
+            return Ico ? <Ico weight="fill" size={20} /> : null
+          })()}{' '}
+          {scenario.title}
         </b>
         <button
           type="button"
@@ -337,7 +389,17 @@ export default function ScenarioChat() {
           onClick={toggleThinking}
           title={thinking ? '先推理再作答，更准但更慢' : '一两秒就回，最省额度'}
         >
-          {thinking ? '🧠 深思' : '⚡ 快速'}
+          {thinking ? <Brain weight="fill" size={14} /> : <Lightning weight="fill" size={14} />}
+          {thinking ? '深思' : '快速'}
+        </button>
+        <button
+          type="button"
+          className={`think-toggle listen ${listen ? 'on' : ''}`}
+          onClick={toggleListen}
+          title="听力模式：AI 只出声不出字，点气泡可看原文"
+        >
+          {listen ? <Ear weight="fill" size={14} /> : <BookOpen weight="fill" size={14} />}
+          {listen ? '听力' : '文字'}
         </button>
       </div>
 
@@ -348,7 +410,7 @@ export default function ScenarioChat() {
             第 {Math.min(turn, scenario.turns)} / {scenario.turns} 轮
           </span>
           <span className="scn-goals-chip">
-            🎯 {hitCount}/{goalsTotal}
+            <Target weight="fill" size={13} /> {hitCount}/{goalsTotal}
           </span>
         </div>
         <div className="scn-turnbar">
@@ -359,7 +421,7 @@ export default function ScenarioChat() {
         <div className="scn-goal-row">
           {scenario.goals.map((g, i) => (
             <span key={i} className={`scn-goal-chip ${goalsHit[i] ? 'hit' : ''}`}>
-              <i>{goalsHit[i] ? '✓' : ''}</i>
+              <i>{goalsHit[i] ? <Check weight="bold" size={9} /> : null}</i>
               {g}
             </span>
           ))}
@@ -367,54 +429,120 @@ export default function ScenarioChat() {
       </div>
 
       <div className="chat-list" ref={listRef}>
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`msg ${m.role}`}
-            onClick={m.role === 'assistant' && !busy ? () => void playReply(m.content) : undefined}
-            title={m.role === 'assistant' ? '点击重播' : undefined}
-          >
-            {m.content}
-          </div>
-        ))}
+        {messages.map((m, i) => {
+          const hideText = listen && m.role === 'assistant' && !revealed.includes(i)
+          return (
+            <div
+              key={i}
+              className={`msg ${m.role} ${hideText ? 'audio-only' : ''}`}
+              onClick={
+                m.role !== 'assistant'
+                  ? undefined
+                  : hideText
+                    ? () => revealMsg(i)
+                    : busy
+                      ? undefined
+                      : () => void playReply(m.content)
+              }
+              title={m.role === 'assistant' ? (hideText ? '点按显示原文' : '点击重播') : undefined}
+            >
+              {hideText ? (
+                <span className="listen-mask">
+                  <SpeakerHigh weight="fill" size={16} />
+                  点按显示文字
+                </span>
+              ) : (
+                m.content
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <div className="chat-status">{PHASE_TEXT[phase]}</div>
 
-      {/* 提示卡 */}
-      <div className="scn-starters">
-        {scenario.starters.map((s) => (
-          <button key={s} type="button" className="scn-starter" onClick={() => setDraft(s)} disabled={busy || finished}>
-            {s}
+      {/* 提示卡：默认不显示，需要时点按展开（回答没思路再求助） */}
+      {showStarters ? (
+        <div className="scn-starters">
+          {scenario.starters.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className="scn-starter"
+              onClick={() => (voiceInput ? void send(s) : setDraft(s))}
+              disabled={busy || finished}
+              title={voiceInput ? '点击直接发送' : '点击填入输入框'}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="scn-starters">
+          <button
+            type="button"
+            className="scn-hints-btn"
+            onClick={() => setShowStarters(true)}
+            disabled={busy || finished}
+          >
+            <Lightbulb weight="fill" size={15} />
+            没思路？看提示
           </button>
-        ))}
-      </div>
+        </div>
+      )}
 
-      <form className="chat-bar" onSubmit={onSubmit}>
-        <button
-          type="button"
-          className={`mic ${phase === 'rec' ? 'rec' : ''}`}
-          onClick={() => void toggleRec()}
-          disabled={(busy && phase !== 'rec') || finished}
-          title="点击开始 / 结束录音"
-        >
-          {phase === 'rec' ? '⏹' : '🎤'}
-        </button>
-        <input
-          className="chat-input"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="输入或按麦克风说话…"
-          disabled={busy || finished}
-        />
-        <button className="chat-send" type="submit" disabled={busy || finished || !draft.trim()}>
-          发送
-        </button>
-      </form>
+      {voiceInput ? (
+        <div className="chat-bar voice">
+          <button
+            type="button"
+            className={`mic ${phase === 'rec' ? 'rec' : ''}`}
+            onClick={() => void toggleRec()}
+            disabled={(busy && phase !== 'rec') || finished}
+            title="点击开始 / 结束录音"
+          >
+            {phase === 'rec' ? <Stop weight="fill" size={22} /> : <Microphone weight="fill" size={28} />}
+          </button>
+          <span className="voice-hint">{phase === 'rec' ? '正在聆听 · 再点一下结束' : '点麦克风说英语'}</span>
+          <button
+            type="button"
+            className="kbd-toggle"
+            onClick={() => {
+              setVoiceInput(false)
+              setVoiceFirst(false) // 记住打字偏好，下次仍以打字为主
+            }}
+            title="切换打字输入"
+          >
+            <Keyboard weight="fill" size={22} />
+          </button>
+        </div>
+      ) : (
+        <form className="chat-bar" onSubmit={onSubmit}>
+          <button
+            type="button"
+            className={`mic ${phase === 'rec' ? 'rec' : ''}`}
+            onClick={() => void toggleRec()}
+            disabled={(busy && phase !== 'rec') || finished}
+            title="点击开始 / 结束录音"
+          >
+            {phase === 'rec' ? <Stop weight="fill" size={20} /> : <Microphone weight="fill" size={26} />}
+          </button>
+          <input
+            className="chat-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="输入或按麦克风说话…"
+            disabled={busy || finished}
+          />
+          <button className="chat-send" type="submit" disabled={busy || finished || !draft.trim()}>
+            <PaperPlaneRight weight="fill" size={15} />
+            发送
+          </button>
+        </form>
+      )}
 
       {canFinish && (
         <button type="button" className="scn-finish-pill show" onClick={() => void finish()}>
-          🎉 {finished ? '回合用完 · ' : '目标达成 · '}查看结算
+          <Confetti weight="fill" size={16} /> {finished ? '回合用完 · ' : '目标达成 · '}查看结算
         </button>
       )}
     </div>

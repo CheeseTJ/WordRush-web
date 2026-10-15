@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Check, ClipboardText, Lock } from '@phosphor-icons/react'
 import { claimTask, fetchTasks, type Task } from '@/api/client'
 import { dailyScenarios, dayLabel, scenarioDoneToday, type Scenario } from '@/data/scenarios'
 import { gamifyEnabled } from '@/data/exp'
+import { SCN_ICONS, toast } from '@/ui'
 import { useApp } from '@/state/store'
-import { toast } from '@/ui'
 import '@/styles-scenario.css'
 
 /** 一张场景卡：进行中 / 已完成 / 锁定三种状态 */
@@ -21,6 +22,7 @@ function ScenarioCard({
   lockedText?: string
   onStart: () => void
 }) {
+  const Ico = SCN_ICONS[scn.icon]
   return (
     <div
       className={`scn-card ${done ? 'done' : ''} ${locked ? 'locked' : ''}`}
@@ -31,7 +33,7 @@ function ScenarioCard({
         if (!locked && (e.key === 'Enter' || e.key === ' ')) onStart()
       }}
     >
-      <span className={`scn-emoji tint-${scn.tint}`}>{scn.emoji}</span>
+      <span className={`scn-emoji tint-${scn.tint}`}>{Ico ? <Ico weight="fill" size={30} /> : null}</span>
       <span className="scn-info">
         <b>{scn.title}</b>
         <i>{scn.en}</i>
@@ -39,13 +41,21 @@ function ScenarioCard({
           <em className="tag lvl">{scn.level}</em>
           <em className="tag goal">{scn.goals.length} 个目标</em>
           {!locked && <em className="tag xp">满星 +15 XP</em>}
-          {locked && <em className="tag dim">🔒 {lockedText}</em>}
+          {locked && (
+            <em className="tag dim">
+              <Lock weight="fill" size={11} /> {lockedText}
+            </em>
+          )}
         </span>
       </span>
       {locked ? (
-        <span className="scn-badge lock">🔒</span>
+        <span className="scn-badge lock">
+          <Lock weight="fill" size={17} />
+        </span>
       ) : done ? (
-        <span className="scn-badge check">✓</span>
+        <span className="scn-badge check">
+          <Check weight="fill" size={15} />
+        </span>
       ) : (
         <span className="scn-play" aria-hidden />
       )}
@@ -120,7 +130,9 @@ export default function Scenarios() {
 
       {gamifyEnabled() && chatTask && (
         <div className="scn-task">
-          <span className="ic">📋</span>
+          <span className="ic">
+            <ClipboardText weight="fill" size={23} />
+          </span>
           <span className="tx">
             <b>{chatTask.label}</b>
             <span>

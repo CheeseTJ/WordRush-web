@@ -106,3 +106,47 @@ export function setChatThinking(on: boolean): void {
     /* 忽略 */
   }
 }
+
+/* ---------- 口语对话：听力模式 ---------- */
+
+const LISTEN_KEY = 'wordrush.exp.listen'
+
+/** 听力模式：AI 回复只播声音不出字（点气泡可显示该条原文）。默认关闭。 */
+export function listenMode(): boolean {
+  try {
+    return localStorage.getItem(LISTEN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setListenMode(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(LISTEN_KEY, '1')
+    else localStorage.removeItem(LISTEN_KEY)
+  } catch {
+    /* 忽略 */
+  }
+}
+
+/* ---------- 口语对话：语音优先输入 ---------- */
+
+const VOICE_FIRST_KEY = 'wordrush.exp.voicefirst'
+
+/** 语音优先：输入条默认只留麦克风，点键盘才切打字。默认开启。 */
+export function voiceFirst(): boolean {
+  try {
+    return localStorage.getItem(VOICE_FIRST_KEY) !== '0'
+  } catch {
+    return true
+  }
+}
+
+export function setVoiceFirst(on: boolean): void {
+  try {
+    if (on) localStorage.removeItem(VOICE_FIRST_KEY)
+    else localStorage.setItem(VOICE_FIRST_KEY, '0')
+  } catch {
+    /* 忽略 */
+  }
+}

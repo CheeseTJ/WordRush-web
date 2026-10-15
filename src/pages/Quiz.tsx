@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Diamond, Flame } from '@phosphor-icons/react'
 import { findUnitSync, loadBook, findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
 import { speakEnabled, gamifyEnabled } from '@/data/exp'
@@ -516,7 +517,11 @@ export default function Quiz() {
           <div className="qprog">
             <i style={{ width: `${(qi / screenTotal) * 100}%` }} />
           </div>
-          {gamifyEnabled() && combo >= 2 && <span className="combo">🔥 连击 ×{combo}</span>}
+          {gamifyEnabled() && combo >= 2 && (
+            <span className="combo">
+              <Flame weight="fill" size={12} style={{ verticalAlign: '-1.5px' }} /> 连击 ×{combo}
+            </span>
+          )}
         </div>
 
         {/* 题干区：按题型分发 */}
@@ -654,14 +659,23 @@ export default function Quiz() {
               <br />
               每半小时自动恢复 1 颗红心
             </p>
-            <p className="gem-line">💎 剩余 {profile.gems ?? 0} · 补满红心需 25</p>
+            <p className="gem-line">
+              <Diamond weight="fill" size={13} style={{ verticalAlign: '-2px', color: 'var(--blue)' }} /> 剩余{' '}
+              {profile.gems ?? 0} · 补满红心需 25
+            </p>
             <button
               type="button"
               className="btn"
               disabled={refilling || (profile.gems ?? 0) < 25}
               onClick={doRefill}
             >
-              {refilling ? '补心中…' : '💎 25 补满红心'}
+              {refilling ? (
+                '补心中…'
+              ) : (
+                <>
+                  <Diamond weight="fill" size={13} style={{ verticalAlign: '-2px' }} /> 25 补满红心
+                </>
+              )}
             </button>
             <button type="button" className="btn alt" onClick={() => nav('/map')}>
               等待恢复，返回地图

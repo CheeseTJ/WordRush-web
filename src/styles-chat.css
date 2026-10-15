@@ -42,6 +42,12 @@
   color: #fff;
   box-shadow: 0 3px 0 #8a4fd6;
 }
+/* 听力模式开关与深思同形态，激活改蓝色以示区分 */
+.think-toggle.listen.on {
+  background: var(--blue);
+  border-color: var(--blue);
+  box-shadow: 0 3px 0 var(--blue-d);
+}
 
 .chat-list {
   flex: 1;
@@ -120,6 +126,54 @@
   gap: 10px;
 }
 
+/* ---------- 语音优先输入条：只留麦克风，点键盘切打字 ---------- */
+.chat-bar.voice {
+  gap: 12px;
+}
+.chat-bar.voice .mic {
+  width: 64px;
+  height: 64px;
+}
+.voice-hint {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.kbd-toggle {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border-radius: 26px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--line-d);
+  transition: transform 0.12s var(--spr);
+}
+.kbd-toggle:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--line-d);
+}
+
+/* ---------- 听力模式：AI 气泡只留声纹入口 ---------- */
+.msg.audio-only {
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+.listen-mask {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
 .mic {
   flex: 0 0 auto;
   width: 56px;
@@ -133,6 +187,11 @@
   cursor: pointer;
   box-shadow: 0 4px 0 var(--green-d);
   transition: transform 0.12s var(--spr);
+  display: grid;
+  place-items: center;
+}
+.mic svg {
+  display: block;
 }
 .mic:active {
   transform: translateY(2px);
@@ -185,6 +244,12 @@
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 0 var(--blue-d);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chat-send svg {
+  display: block;
 }
 .chat-send:disabled {
   opacity: 0.5;

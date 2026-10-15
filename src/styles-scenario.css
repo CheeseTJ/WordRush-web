@@ -56,11 +56,11 @@
   flex-shrink: 0;
   transform: rotate(-4deg);
 }
-.scn-emoji.tint-yellow { background: #fff3c4; border-color: var(--yellow-d); }
-.scn-emoji.tint-blue { background: var(--blue-l); border-color: var(--blue-d); }
-.scn-emoji.tint-green { background: var(--green-l); border-color: var(--green-d); }
-.scn-emoji.tint-coral { background: var(--coral-l); border-color: var(--coral-d); }
-.scn-emoji.tint-purple { background: #f3ecff; border-color: var(--purple-d); }
+.scn-emoji.tint-yellow { background: #fff3c4; border-color: var(--yellow-d); color: var(--yellow-d); }
+.scn-emoji.tint-blue { background: var(--blue-l); border-color: var(--blue-d); color: var(--blue-d); }
+.scn-emoji.tint-green { background: var(--green-l); border-color: var(--green-d); color: var(--green-d); }
+.scn-emoji.tint-coral { background: var(--coral-l); border-color: var(--coral-d); color: var(--coral-d); }
+.scn-emoji.tint-purple { background: #f3ecff; border-color: var(--purple-d); color: var(--purple-d); }
 
 .scn-info {
   flex: 1;
@@ -99,7 +99,11 @@
   /* 徽标内容垂直居中：CJK/拉丁/emoji 混排字体基线各异，行内排版会导致文字高低不齐 */
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   line-height: 1;
+}
+.tag svg {
+  display: block;
 }
 .tag.lvl { background: var(--blue-l); border-color: var(--blue); color: var(--blue-d); }
 .tag.goal { background: var(--green-l); border-color: var(--green); color: var(--green-d); }
@@ -135,6 +139,9 @@
   font-size: 20px;
   flex-shrink: 0;
   border: 2px solid;
+}
+.scn-badge svg {
+  display: block;
 }
 .scn-badge.check {
   background: var(--green-l);
@@ -240,6 +247,9 @@
   color: var(--ink);
 }
 .scn-goals-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   font-weight: 900;
   color: var(--coral-d);
@@ -247,6 +257,9 @@
   border: 2px solid var(--coral);
   border-radius: 999px;
   padding: 3px 10px;
+}
+.scn-goals-chip svg {
+  display: block;
 }
 .scn-turnbar {
   display: flex;
@@ -312,6 +325,31 @@
   scrollbar-width: none;
 }
 .scn-starters::-webkit-scrollbar { display: none; }
+
+/* 提示句默认收起，点「看提示」展开：降低屏幕文字占比 */
+.scn-hints-btn {
+  flex: 0 0 auto;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  background: var(--card);
+  border: 2px dashed var(--line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--line);
+  transition: transform 0.15s var(--spr);
+}
+.scn-hints-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--line);
+}
+.scn-hints-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.scn-starters::-webkit-scrollbar { display: none; }
 .scn-starter {
   flex-shrink: 0;
   font-family: inherit;
@@ -340,6 +378,9 @@
   bottom: 86px;
   transform: translateX(-50%);
   z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: 'Fredoka', 'Nunito', sans-serif;
   font-weight: 600;
   font-size: 14.5px;
@@ -352,6 +393,9 @@
   cursor: pointer;
   white-space: nowrap;
   animation: scnPillIn 0.4s var(--spr);
+}
+.scn-finish-pill svg {
+  display: block;
 }
 .scn-finish-pill:active {
   transform: translateX(-50%) translateY(4px);
@@ -427,6 +471,9 @@
   gap: 10px;
 }
 .scn-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: 'Fredoka', 'Nunito', sans-serif;
   font-weight: 600;
   font-size: 14.5px;
@@ -436,6 +483,9 @@
   border-radius: 16px;
   padding: 8px 15px;
   box-shadow: 0 3px 0 var(--yellow-d);
+}
+.scn-reward svg {
+  display: block;
 }
 .scn-reward.b {
   color: var(--blue-d);

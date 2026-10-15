@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Diamond, Flame, Heart, Snowflake } from '@phosphor-icons/react'
 import { BOOKS, currentBookId, bookMeta } from '@/data/vocab'
 import { fetchStats, type Stats } from '@/api/client'
 import { useApp } from '@/state/store'
@@ -69,13 +70,13 @@ export function Sidebar() {
         <div className="panel side-goal">
           <div className="econ-row">
             <span className="econ-chip" title="红心：每 30 分钟恢复 1 颗">
-              ❤️ <b>{profile.hearts ?? 5}</b>/5
+              <Heart weight="fill" size={14} style={{ color: 'var(--coral)' }} /> <b>{profile.hearts ?? 5}</b>/5
             </span>
             <span className="econ-chip" title="宝石：通关、任务与连击奖励">
-              💎 <b>{profile.gems ?? 0}</b>
+              <Diamond weight="fill" size={14} style={{ color: 'var(--blue)' }} /> <b>{profile.gems ?? 0}</b>
             </span>
             <span className="econ-chip" title="连胜冻结：断签日自动消耗，保住连胜">
-              🧊 <b>{profile.streak_freeze ?? 0}</b>
+              <Snowflake weight="fill" size={14} style={{ color: 'var(--blue-d)' }} /> <b>{profile.streak_freeze ?? 0}</b>
             </span>
           </div>
         </div>
@@ -83,7 +84,7 @@ export function Sidebar() {
 
       {/* 连胜 */}
       <div className="panel side-goal">
-        <span style={{ fontSize: 32, lineHeight: 1 }}>🔥</span>
+        <Flame weight="fill" size={32} color="#FF9600" />
         <div className="side-tx">
           <b style={{ color: '#FF9600', fontSize: 24 }}>{profile.streak_days} 天</b>
           <span>连续学习</span>

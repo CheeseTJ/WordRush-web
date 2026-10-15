@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Barbell, ChartBar, ChatCircleText, Flame, Heart, House, Lightning, User } from '@phosphor-icons/react'
 import { useApp } from '@/state/store'
 import { Sidebar } from '@/components/Sidebar'
 import { gamifyEnabled } from '@/data/exp'
@@ -48,7 +49,7 @@ export default function Home() {
               title={hearts >= 5 ? '红心已满' : '每 30 分钟恢复 1 颗红心'}
               onClick={() => nav('/map')}
             >
-              <span>{hearts > 0 ? '❤️' : '💔'}</span>
+              <Heart weight="fill" size={16} style={{ color: hearts > 0 ? 'var(--coral)' : '#cbc4b6' }} />
               <span className="num">{hearts}</span>/5
             </button>
           )}
@@ -58,7 +59,7 @@ export default function Home() {
             title="连续学习天数"
             onClick={() => nav('/stats')}
           >
-            <span>🔥</span>
+            <Flame weight="fill" size={16} style={{ color: '#FF9600' }} />
             <span className="num">{shownStreak}</span> 天
           </button>
           {pending > 0 && (
@@ -67,7 +68,7 @@ export default function Home() {
             </span>
           )}
           <span className="pill xp">
-            <span>⚡</span>
+            <Lightning weight="fill" size={16} style={{ color: 'var(--yellow-d)' }} />
             <span className="num">{shownXp}</span> XP
           </span>
         </header>
@@ -81,11 +82,11 @@ export default function Home() {
 
       {!immersive && (
         <nav className="dock stg" style={{ ['--d' as string]: 3 }}>
-          <DockLink to="/map" icon="🏠" label="学习" />
-          <DockLink to="/review" icon="💪" label="复习" />
-          <DockLink to="/scenarios" icon="🗣️" label="情景" />
-          <DockLink to="/stats" icon="📊" label="统计" />
-          <DockLink to="/me" icon="👤" label="我的" />
+          <DockLink to="/map" icon={<House weight="fill" />} label="学习" />
+          <DockLink to="/review" icon={<Barbell weight="fill" />} label="复习" />
+          <DockLink to="/scenarios" icon={<ChatCircleText weight="fill" />} label="情景" />
+          <DockLink to="/stats" icon={<ChartBar weight="fill" />} label="统计" />
+          <DockLink to="/me" icon={<User weight="fill" />} label="我的" />
         </nav>
       )}
       <div className="toast" id="toast" />
@@ -93,7 +94,7 @@ export default function Home() {
   )
 }
 
-function DockLink({ to, icon, label }: { to: string; icon: string; label: string }) {
+function DockLink({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
   return (
     <NavLink to={to} className={({ isActive }) => (isActive ? 'on' : '')}>
       <b>{icon}</b>
