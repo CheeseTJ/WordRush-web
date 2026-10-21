@@ -52,7 +52,18 @@ export function UpdateRow() {
       } catch (e) {
         const msg = e instanceof Error ? e.message : '检查失败'
         setErrMsg(msg)
-        if (!opts?.silent) toast('检查更新失败，请稍后重试')
+        if (!opts?.silent) {
+          // 区分「网络不通」和「服务端返回了看不懂的东西」：
+          // 后者最常见的原因是请求打到了 WebView 本地服务器（拿到 SPA 的 HTML），
+          // 用户看到具体原因才能判断是网络问题还是版本问题
+          const friendly =
+            msg.includes('合法 JSON') || msg.includes('bad_response_body')
+              ? '服务器返回异常，请稍后重试'
+              : msg.includes('Failed to fetch') || msg.includes('NetworkError')
+                ? '网络连接失败，请检查网络后重试'
+                : `检查更新失败：${msg}`
+          toast(friendly)
+        }
         return null
       } finally {
         setPhase('idle')

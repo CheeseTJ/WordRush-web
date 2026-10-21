@@ -10,7 +10,7 @@
  * 谁都能拿去刷额度。密钥留在服务端，客户端只认后端结论。
  */
 
-import { isNativeApp } from '@/platform'
+import { apiBase, isNativeApp } from '@/platform'
 import { authFetch } from './ucenter'
 
 /** 后端返回的版本信息（与 internal/api/appversion.go 保持一致） */
@@ -53,8 +53,11 @@ export async function localVersion(): Promise<LocalVersion | null> {
 /** 向后端查询最新版本 */
 export function fetchAppVersion(build: number): Promise<AppVersion> {
   const qs = `?version_code=${build}&platform=android`
-  // 版本检查是公开接口，不依赖登录态；但复用 authFetch 走同一出口
-  return authFetch<AppVersion>(`/api/app/version${qs}`, { retryOn401: false })
+  // 必须走 apiBase()：原生壳内 origin 是 https://localhost，WebView 本地
+  // 资源服务器没有 /api 路由，相对路径会命中 SPA 回退返回 index.html，
+  // 随后 JSON 解析失败——表现就是「检查更新失败」。
+  // apiBase() 在浏览器里返回 ''（同源），在壳里返回隧道域名。
+  return authFetch<AppVersion>(`${apiBase()}/api/app/version${qs}`, { retryOn401: false })
 }
 
 /** 把字节数转成人类可读体积 */
