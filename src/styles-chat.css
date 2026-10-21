@@ -7,23 +7,38 @@
 
 .chat-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
-  padding: 2px 4px;
+  /* 左右不留内缩：让返回键、面板、提示条、输入条左边缘一律对齐到 .scn-chat 的 16px */
+  padding: 2px 0;
 }
 .chat-head b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 20px;
+  line-height: 1.1;
   color: var(--ink);
+}
+.chat-head b svg {
+  display: block;
+  flex: 0 0 auto;
 }
 .chat-head span {
   font-size: 13px;
   color: var(--ink-soft);
 }
 
+/* 头部右侧开关组：打包进一个容器统一贴右，避免两个 margin-left:auto 平分间距 */
+.head-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* 思考模式切换：头部右侧胶囊 */
 .think-toggle {
-  margin-left: auto;
-  align-self: center;
   border: 2px solid var(--line);
   background: #fff;
   color: var(--ink-soft);
@@ -35,6 +50,10 @@
   cursor: pointer;
   box-shadow: 0 3px 0 var(--line-d);
   transition: 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
 }
 .think-toggle.on {
   background: #a870f0;
@@ -126,27 +145,14 @@
   gap: 10px;
 }
 
-/* ---------- 语音优先输入条：只留麦克风，点键盘切打字 ---------- */
-.chat-bar.voice {
-  gap: 12px;
-}
-.chat-bar.voice .mic {
-  width: 64px;
-  height: 64px;
-}
-.voice-hint {
-  flex: 1;
-  min-width: 0;
-  text-align: center;
-  font-size: 13.5px;
-  font-weight: 800;
-  color: var(--ink-soft);
-}
-.kbd-toggle {
+/* ---------- 微信式输入条 ----------
+ * 左侧胶囊 = 模式切换（语音 ⇄ 键盘），中间 = 输入框或按住说话，右侧 = 发送。
+ * 旧版把麦克风既当录音键又当切模式键，两边语义打架，现在拆开。 */
+.mode-toggle {
   flex: 0 0 auto;
-  width: 52px;
-  height: 52px;
-  border-radius: 26px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
   border: 2px solid var(--line);
   background: var(--card);
   color: var(--ink-soft);
@@ -154,11 +160,56 @@
   place-items: center;
   cursor: pointer;
   box-shadow: 0 3px 0 var(--line-d);
-  transition: transform 0.12s var(--spr);
+  transition: transform 0.12s var(--spr), color 0.15s;
 }
-.kbd-toggle:active {
+.mode-toggle:active {
   transform: translateY(2px);
   box-shadow: 0 1px 0 var(--line-d);
+}
+.mode-toggle svg {
+  display: block;
+}
+
+/* 按住说话条：长按录音，松手即发 */
+.ptt {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  border-radius: 26px;
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  /* 移动端长按不触发选中/系统菜单 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  transition: transform 0.12s var(--spr), background 0.15s, border-color 0.15s, color 0.15s;
+}
+.ptt svg {
+  display: block;
+}
+.ptt:active {
+  transform: scale(0.985);
+}
+.ptt.rec {
+  background: var(--green-l);
+  border-color: var(--green);
+  color: var(--green-d);
+  box-shadow: 0 3px 0 var(--green-d);
+}
+.ptt:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* ---------- 听力模式：AI 气泡只留声纹入口 ---------- */
@@ -174,47 +225,9 @@
   font-weight: 800;
 }
 
-.mic {
-  flex: 0 0 auto;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: var(--green);
-  color: #fff;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 4px 0 var(--green-d);
-  transition: transform 0.12s var(--spr);
-  display: grid;
-  place-items: center;
-}
-.mic svg {
-  display: block;
-}
-.mic:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--green-d);
-}
-.mic:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.mic.rec {
-  background: var(--coral);
-  box-shadow: 0 4px 0 var(--coral-d);
-  animation: micPulse 1s ease-in-out infinite;
-}
-@keyframes micPulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.08);
-  }
-}
+/* 注意：这里不再定义 .mic —— 该选择器是全局的，答题页（Quiz）用它渲染药丸形
+   录音按钮（padding: 14px 26px）。对话页曾在此覆盖成 56px 圆形，导致访问过对话页
+   后答题页的录音按钮变形。对话页录音已改用 .ptt / .mode-toggle 专属类名。 */
 
 .chat-input {
   flex: 1;

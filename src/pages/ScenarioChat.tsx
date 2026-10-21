@@ -82,7 +82,7 @@ export default function ScenarioChat() {
   const [summary, setSummary] = useState<ChatSummary | null>(null)
   // 听力模式：AI 回复只播声音不出字（点气泡看该条原文）
   const [listen, setListen] = useState(listenMode)
-  // 语音优先：输入条默认只留麦克风，点键盘才切打字
+  // 语音优先：输入区默认「按住说话」，左侧胶囊可切到键盘打字
   const [voiceInput, setVoiceInput] = useState(voiceFirst)
   const [revealed, setRevealed] = useState<number[]>([])
   const [showStarters, setShowStarters] = useState(false)
@@ -91,6 +91,10 @@ export default function ScenarioChat() {
   const streamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const listRef = useRef<HTMLDivElement | null>(null)
+  // 按住说话（微信式 PTT）用到的三个状态：手指是否还在按、按下时刻、是否丢弃
+  const holdRef = useRef(false)
+  const pressAtRef = useRef(0)
+  const discardRef = useRef(false)
 
   const busy = phase !== 'idle'
   const turnsUsed = turn - 1
@@ -159,20 +163,21 @@ export default function ScenarioChat() {
     setRevealed((r) => (r.includes(i) ? r : [...r, i]))
   }
 
-  /* ---------- 语音输入（与口语跟读同一套录音 → STT 流程） ---------- */
+  /* ---------- 语音输入（微信式「按住说话」：按下开始、松开结束） ---------- */
 
-  async function toggleRec() {
-    if (phase === 'rec') {
-      recRef.current?.stop()
-      return
-    }
-    if (busy || finished) return
+  async function startRec() {
     if (!navigator.mediaDevices?.getUserMedia) {
       toast('当前环境不支持录音')
       return
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // 授权弹窗期间就松手了：别白录一段，直接收尾
+      if (!holdRef.current) {
+        stream.getTracks().forEach((t) => t.stop())
+        toast('按住说话，说完再松手')
+        return
+      }
       streamRef.current = stream
       const mr = new MediaRecorder(stream)
       recRef.current = mr
@@ -184,15 +189,42 @@ export default function ScenarioChat() {
         stream.getTracks().forEach((t) => t.stop())
         streamRef.current = null
         recRef.current = null
+        if (discardRef.current) {
+          discardRef.current = false
+          chunksRef.current = []
+          setPhase('idle')
+          toast('按住说话，说完再松手')
+          return
+        }
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' })
         void handleAudio(blob)
       }
       mr.start()
-      buzz(10)
+      buzz(8)
       setPhase('rec')
     } catch {
       toast('麦克风不可用')
     }
+  }
+
+  function endRec() {
+    const mr = recRef.current
+    if (!mr) return
+    if (Date.now() - pressAtRef.current < 400) discardRef.current = true // 误触判定
+    mr.stop()
+  }
+
+  function onPttDown() {
+    if (phase === 'rec' || busy || finished) return
+    pressAtRef.current = Date.now()
+    holdRef.current = true
+    void startRec()
+  }
+
+  function onPttUp() {
+    if (!holdRef.current) return
+    holdRef.current = false
+    endRec()
   }
 
   async function handleAudio(blob: Blob) {
@@ -380,27 +412,29 @@ export default function ScenarioChat() {
           {(() => {
             const Ico = SCN_ICONS[scenario.icon]
             return Ico ? <Ico weight="fill" size={20} /> : null
-          })()}{' '}
-          {scenario.title}
+          })()}
+          <span>{scenario.title}</span>
         </b>
-        <button
-          type="button"
-          className={`think-toggle ${thinking ? 'on' : ''}`}
-          onClick={toggleThinking}
-          title={thinking ? '先推理再作答，更准但更慢' : '一两秒就回，最省额度'}
-        >
-          {thinking ? <Brain weight="fill" size={14} /> : <Lightning weight="fill" size={14} />}
-          {thinking ? '深思' : '快速'}
-        </button>
-        <button
-          type="button"
-          className={`think-toggle listen ${listen ? 'on' : ''}`}
-          onClick={toggleListen}
-          title="听力模式：AI 只出声不出字，点气泡可看原文"
-        >
-          {listen ? <Ear weight="fill" size={14} /> : <BookOpen weight="fill" size={14} />}
-          {listen ? '听力' : '文字'}
-        </button>
+        <div className="head-actions">
+          <button
+            type="button"
+            className={`think-toggle ${thinking ? 'on' : ''}`}
+            onClick={toggleThinking}
+            title={thinking ? '先推理再作答，更准但更慢' : '一两秒就回，最省额度'}
+          >
+            {thinking ? <Brain weight="fill" size={14} /> : <Lightning weight="fill" size={14} />}
+            {thinking ? '深思' : '快速'}
+          </button>
+          <button
+            type="button"
+            className={`think-toggle listen ${listen ? 'on' : ''}`}
+            onClick={toggleListen}
+            title="听力模式：AI 只出声不出字，点气泡可看原文"
+          >
+            {listen ? <Ear weight="fill" size={14} /> : <BookOpen weight="fill" size={14} />}
+            {listen ? '听力' : '文字'}
+          </button>
+        </div>
       </div>
 
       {/* 场景面板：回合进度 + 目标清单 */}
@@ -491,54 +525,59 @@ export default function ScenarioChat() {
         </div>
       )}
 
-      {voiceInput ? (
-        <div className="chat-bar voice">
+      {/* 输入区（微信式）：左侧胶囊切换「语音 / 键盘」，中间输入框或按住说话，右侧发送。
+          两个模式共用同一条 bar，麦克风不再兼任“录音”和“切模式”两种语义。 */}
+      <form className="chat-bar" onSubmit={onSubmit}>
+        <button
+          type="button"
+          className="mode-toggle"
+          onClick={() => {
+            const next = !voiceInput
+            setVoiceInput(next)
+            setVoiceFirst(next) // 记住偏好，下次进来沿用
+          }}
+          title={voiceInput ? '切换到键盘打字' : '切换到语音说话'}
+        >
+          {voiceInput ? <Keyboard weight="fill" size={21} /> : <Microphone weight="fill" size={21} />}
+        </button>
+
+        {voiceInput ? (
           <button
             type="button"
-            className={`mic ${phase === 'rec' ? 'rec' : ''}`}
-            onClick={() => void toggleRec()}
+            className={`ptt ${phase === 'rec' ? 'rec' : ''}`}
+            onPointerDown={onPttDown}
+            onPointerUp={onPttUp}
+            onPointerLeave={onPttUp}
+            onPointerCancel={onPttUp}
+            onContextMenu={(e) => e.preventDefault()}
             disabled={(busy && phase !== 'rec') || finished}
-            title="点击开始 / 结束录音"
           >
-            {phase === 'rec' ? <Stop weight="fill" size={22} /> : <Microphone weight="fill" size={28} />}
+            {phase === 'rec' ? (
+              <>
+                <Stop weight="fill" size={17} /> 松开 结束
+              </>
+            ) : phase === 'stt' ? (
+              '识别中…'
+            ) : (
+              '按住 说话'
+            )}
           </button>
-          <span className="voice-hint">{phase === 'rec' ? '正在聆听 · 再点一下结束' : '点麦克风说英语'}</span>
-          <button
-            type="button"
-            className="kbd-toggle"
-            onClick={() => {
-              setVoiceInput(false)
-              setVoiceFirst(false) // 记住打字偏好，下次仍以打字为主
-            }}
-            title="切换打字输入"
-          >
-            <Keyboard weight="fill" size={22} />
-          </button>
-        </div>
-      ) : (
-        <form className="chat-bar" onSubmit={onSubmit}>
-          <button
-            type="button"
-            className={`mic ${phase === 'rec' ? 'rec' : ''}`}
-            onClick={() => void toggleRec()}
-            disabled={(busy && phase !== 'rec') || finished}
-            title="点击开始 / 结束录音"
-          >
-            {phase === 'rec' ? <Stop weight="fill" size={20} /> : <Microphone weight="fill" size={26} />}
-          </button>
-          <input
-            className="chat-input"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="输入或按麦克风说话…"
-            disabled={busy || finished}
-          />
-          <button className="chat-send" type="submit" disabled={busy || finished || !draft.trim()}>
-            <PaperPlaneRight weight="fill" size={15} />
-            发送
-          </button>
-        </form>
-      )}
+        ) : (
+          <>
+            <input
+              className="chat-input"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="输入英文，或切到语音说"
+              disabled={busy || finished}
+            />
+            <button className="chat-send" type="submit" disabled={busy || finished || !draft.trim()}>
+              <PaperPlaneRight weight="fill" size={15} />
+              发送
+            </button>
+          </>
+        )}
+      </form>
 
       {canFinish && (
         <button type="button" className="scn-finish-pill show" onClick={() => void finish()}>

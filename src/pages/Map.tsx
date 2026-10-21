@@ -159,10 +159,10 @@ export default function Map() {
     return () => clearTimeout(t)
   }, [book, firstUncleared])
 
+  /** 点一下小人：说句话 + 跳一下，不撒粒子（粒子留给领奖这类正反馈） */
   function poke() {
     setBubble(PHRASES[Math.floor(Math.random() * PHRASES.length)])
     setMood('happy')
-    confetti(10, ['#58CC02', '#FFC800', '#1CB0F6'])
     setTimeout(() => setMood(undefined), 900)
     if (bubbleTimer.current) clearTimeout(bubbleTimer.current)
     bubbleTimer.current = setTimeout(() => setBubble(''), 2200)
@@ -181,7 +181,7 @@ export default function Map() {
 
   return (
     <div className="view">
-      <div className="map-bg" aria-hidden />
+      {/* 不叠独立背景层：整页统一用 body 的奶油底 + 光斑，避免 HUD 下方出现色差分界线 */}
       <div className="map-scroll">
         {error && <div className="empty-tip">{error}</div>}
         {!error && !book && <div className="empty-tip">正在打开《{meta.name}》…</div>}

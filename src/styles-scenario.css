@@ -321,7 +321,8 @@
   display: flex;
   gap: 7px;
   overflow-x: auto;
-  padding: 2px 2px;
+  /* 左右不内缩：首颗胶囊要与上方面板、下方输入条左对齐 */
+  padding: 2px 0;
   scrollbar-width: none;
 }
 .scn-starters::-webkit-scrollbar { display: none; }

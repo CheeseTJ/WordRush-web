@@ -184,16 +184,10 @@ button:disabled {
 }
 
 /* ---------- 学习：地图 ---------- */
-/* 背景板：绝对定位、不随内容滚动，渐变光斑永远静止 → 无色差分界线 */
-.map-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background:
-    radial-gradient(circle at 14% 4%, rgba(255, 200, 0, 0.2), transparent 38%),
-    radial-gradient(circle at 90% 96%, rgba(88, 204, 2, 0.18), transparent 44%),
-    linear-gradient(180deg, #fff9f0 0%, var(--cream) 45%, #f9f1e0 100%);
-}
+/* 背景统一继承 body（奶油底 + 三处光斑），本页不再叠自己的背景层：
+   叠加层从 .view 顶部起铺，而 HUD 在 .view 之外，两者底色不同就会在
+   HUD 下沿拉出一条横向色差分界线。
+   滚动区自身透明，透出 body 背景即可。 */
 .map-scroll {
   /* 滚动区：absolute 铺满 view，树在这层滚 */
   position: absolute;
