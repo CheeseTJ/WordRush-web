@@ -327,9 +327,17 @@
 }
 .scn-starters::-webkit-scrollbar { display: none; }
 
-/* 提示句默认收起，点「看提示」展开：降低屏幕文字占比 */
+/* 提示句默认收起，点「看提示」展开：降低屏幕文字占比
+ *
+ * 图标与文字必须走 flex 居中：SVG 是行内元素，默认按文本基线对齐，
+ * 而中文字体的基线比拉丁字母低，灯泡会沉到文字下方（和 .tag 是同一个坑）。
+ * line-height: 1 再压掉行盒的上下留白，否则按钮上下内边距看起来不均。 */
 .scn-hints-btn {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 800;
@@ -341,6 +349,10 @@
   cursor: pointer;
   box-shadow: 0 3px 0 var(--line);
   transition: transform 0.15s var(--spr);
+}
+.scn-hints-btn svg {
+  display: block;
+  flex: 0 0 auto;
 }
 .scn-hints-btn:active {
   transform: translateY(2px);
