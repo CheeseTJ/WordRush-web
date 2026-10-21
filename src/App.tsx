@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, useApp } from '@/state/store'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ForceUpdateGate } from '@/components/ForceUpdateGate'
 import Login from '@/pages/Login'
 import Home from '@/pages/Home'
 import Map from '@/pages/Map'
@@ -58,6 +59,8 @@ export default function App() {
     <ErrorBoundary>
       <AppProvider>
         <Shell />
+        {/* 强制更新闸门：盖在路由之上，服务端要求时必须先升级 */}
+        <ForceUpdateGate />
       </AppProvider>
     </ErrorBoundary>
   )

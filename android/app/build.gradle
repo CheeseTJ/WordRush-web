@@ -1,0 +1,96 @@
+apply plugin: 'com.android.application'
+
+/**
+ * 版本号：默认 1 / "1.0"，CI 发版时用 -PversionCode / -PversionName 覆盖。
+ *
+ * 为什么从命令行传：versionCode 必须随每次上传蒲公英递增，否则蒲公英会
+ * 把它当同一个构建覆盖掉，客户端也永远判断不出「有新版本」。
+ */
+def appVersionCode = (project.findProperty("versionCode") ?: "1").toString().toInteger()
+def appVersionName = (project.findProperty("versionName") ?: "1.0").toString()
+
+/**
+ * 正式签名：CI 上从 key.properties 读（由 Secrets 生成）。
+ * 本地没有该文件时回退 debug 签名，方便开发期直接跑。
+ *
+ * 注意：debug 签名每次在不同机器上生成的证书不同，装不上覆盖安装，
+ * 所以真正要分发到蒲公英时必须走 release 签名。
+ */
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+android {
+    namespace = "top.taojun.eng"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "top.taojun.eng"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode appVersionCode
+        versionName appVersionName
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            release {
+                // key.properties 在 android/ 下，而 storeFile 是相对本模块
+                // （android/app/）解析的。用 project.file 保证两种写法都能找到：
+                // 既支持 app/upload-keystore.jks，也支持 ../upload-keystore.jks。
+                def storePath = keystoreProperties['storeFile']
+                def candidate = project.file(storePath)
+                if (!candidate.exists()) {
+                    candidate = rootProject.file(storePath)
+                }
+                storeFile candidate
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // 有正式签名就用正式签名，否则退回 debug（仅限本地调试）
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

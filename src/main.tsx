@@ -11,9 +11,14 @@ import './styles-books.css'
 // 才能覆盖 .view 的 flex:1，因此与其他布局文件一起在入口导入
 import './styles-courses.css'
 import { registerSW } from 'virtual:pwa-register'
+import { isNativeApp } from './platform'
 
-// SW 自动更新：新版本后台下载，下次刷新生效
-registerSW({ immediate: true })
+// SW 自动更新：新版本后台下载，下次刷新生效。
+// 原生壳内跳过注册：WebView 不支持 Service Worker，且 dist 已整包打进 APK，
+// 天然离线可用，注册只会抛错。
+if (!isNativeApp()) {
+  registerSW({ immediate: true })
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

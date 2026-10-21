@@ -11,6 +11,7 @@ import {
   Stethoscope,
   type IconProps,
 } from '@phosphor-icons/react'
+import { isNativeApp } from '@/platform'
 
 /** 全屏彩纸：在 body 上撒 n 颗色块 */
 export function confetti(n: number, colors: string[]): void {
@@ -48,10 +49,35 @@ export function toast(msg: string): void {
 }
 
 export function buzz(pattern: number | number[]): void {
+  // 原生壳内 navigator.vibrate 在 WebView 里实测无效（需 VIBRATE 权限且受
+  // 用户「触摸反馈」设置影响），改用 Capacitor Haptics 走系统振动马达。
+  if (isNativeApp()) {
+    void nativeBuzz(pattern)
+    return
+  }
   try {
     navigator.vibrate?.(pattern)
   } catch {
     /* 不支持震动则忽略 */
+  }
+}
+
+/** 把 vibrate 的「毫秒时长/节奏数组」翻译成 Haptics 的几种预设手势 */
+async function nativeBuzz(pattern: number | number[]): Promise<void> {
+  try {
+    const { Haptics, ImpactStyle, NotificationType } = await import('@capacitor/haptics')
+    const arr = Array.isArray(pattern) ? pattern : [pattern]
+    // 多段节奏（失败提示 [26,44,26] 这类）→ 错误通知手势
+    if (arr.length > 1) {
+      await Haptics.notification({ type: NotificationType.Error })
+      return
+    }
+    const ms = arr[0] ?? 0
+    // 时长越长冲击越重：<15ms 轻、<40ms 中、其余重
+    const style = ms < 15 ? ImpactStyle.Light : ms < 40 ? ImpactStyle.Medium : ImpactStyle.Heavy
+    await Haptics.impact({ style })
+  } catch {
+    /* 无马达或用户关闭震动：静默 */
   }
 }
 

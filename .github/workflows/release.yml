@@ -1,0 +1,120 @@
+name: Release APK
+
+# 打 tag（v1.2.0）时：构建前端 → 同步进安卓壳 → 出正式签名 APK → 建 GitHub Release。
+#
+# ⚠️ 本工作流【不上传蒲公英】。
+#    上传由 CICD 控制台（/home/ubuntu/code/CICD）统一负责：它轮询 GitHub Release，
+#    发现新 tag 就把 APK 传到蒲公英。这样蒲公英 API Key 只存在服务器一处，
+#    新增项目也不用复制一整套 workflow。
+#    因此这里只需保证「Release 里有一个带 versionCode 的正式签名 APK」。
+#
+# 版本号策略：
+#   - versionName 取自 tag（v1.2.0 → 1.2.0）
+#   - versionCode 取自 run_number（单调递增）。蒲公英与客户端都靠它比较大小，
+#     只看 versionName 会在 "1.10" vs "1.9" 上比错。
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}
+
+concurrency:
+  # 同时只跑一个发版任务：两次并发构建会抢同一个 Release tag
+  group: release-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve version
+        id: ver
+        run: |
+          # tag 形如 v1.2.0；workflow_dispatch 手动触发时没有 tag，退回 package.json
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            NAME="${GITHUB_REF_NAME#v}"
+          else
+            NAME="$(node -p "require('./package.json').version")"
+          fi
+          # versionCode 必须严格递增：用 run_number 保证
+          CODE="${GITHUB_RUN_NUMBER}"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "版本：$NAME ($CODE)"
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build web
+        # 壳内没有同源后端，必须直连隧道域名（内置兜底，这里显式注入更清楚）
+        env:
+          VITE_API_BASE: https://eng.june-t.top
+        run: npm run build
+
+      - name: Sync into Android project
+        run: npx cap sync android
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::缺少 ANDROID_KEYSTORE_BASE64。debug 签名每次构建证书都不同，装不上覆盖安装，也会让客户端永远认为有新版本"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}"
+            echo "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}"
+          } > android/key.properties
+
+      - name: Build release APK
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease --no-daemon \
+            -PversionCode=${{ steps.ver.outputs.code }} \
+            -PversionName=${{ steps.ver.outputs.name }}
+
+      - name: Verify APK signature
+        run: |
+          # keytool -printcert -jarfile 只能读 v1(JAR) 签名，minSdk=24 时
+          # AGP 默认只出 v2，必须用 apksigner
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          APKSIGNER="$(find "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          "$APKSIGNER" verify --print-certs "$APK"
+
+      - name: Rename APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             "out/wordrush-${{ steps.ver.outputs.name }}.apk"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: out/wordrush-*.apk

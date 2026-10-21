@@ -23,3 +23,21 @@ pnpm-debug.log*
 .DS_Store
 .idea/
 .vscode/
+
+# ---- Capacitor / Android ----
+# android/ 里的工程文件（图标、Manifest 权限、签名配置）要入库：
+# 这些都是手改过的产物，重新 `cap add android` 会全丢。
+# 但构建产物、机器相关路径、密钥必须排除。
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/release/
+android/app/upload-keystore.jks
+android/key.properties
+# Capacitor 每次 sync 都会重写这棵目录，等于 dist 的副本
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/capacitor-cordova-android-plugins/
+android/app/src/main/assets/capacitor.plugins.json
+

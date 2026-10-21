@@ -8,14 +8,18 @@
 
 import { authFetch as rawAuthFetch } from './ucenter'
 import { currentVoice } from '@/data/exp'
+import { apiBase } from '@/platform'
 
 /**
  * 业务 API 根地址：缺省同源（本地 dev 走 Vite 代理；wrangler 部署时由
  * functions/api/[[route]].ts 同域反代）。也可在构建时用 VITE_API_BASE
  * 指向隧道域名直连——dashboard 拖拽直传不支持 Functions 时靠它兜底，
  * 后端 CORS 白名单已放行站点域名。
+ *
+ * Capacitor 原生壳内 origin 是 https://localhost，没有同源后端，
+ * 由 apiBase() 自动切到隧道域名。
  */
-const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/+$/, '')
+const API_BASE = apiBase()
 
 function authFetch<T>(url: string, options?: Parameters<typeof rawAuthFetch>[1]): Promise<T> {
   return rawAuthFetch<T>(API_BASE + url, options)

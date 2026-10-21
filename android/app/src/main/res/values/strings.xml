@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WordRush</string>
+    <string name="title_activity_main">WordRush</string>
+    <string name="package_name">top.taojun.eng</string>
+    <string name="custom_url_scheme">top.taojun.eng</string>
+</resources>

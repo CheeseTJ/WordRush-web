@@ -1257,6 +1257,8 @@ button:disabled {
   scrollbar-width: none;
   box-shadow: 0 14px 0 rgba(0, 0, 0, 0.1);
   animation: popIn 0.5s var(--spr);
+  /* 更新弹层的关闭按钮用绝对定位挂在本容器上 */
+  position: relative;
 }
 .fill .box::-webkit-scrollbar {
   display: none;
@@ -2055,4 +2057,104 @@ button:disabled {
   border-radius: 12px;
   padding: 8px 14px;
   text-align: center;
+}
+
+/* ============================================================
+ * 检查更新（「我的」页，仅原生 App 出现）
+ * ============================================================ */
+
+/* 检查中旋转：图标原地转，不改变行高 */
+.spin {
+  animation: ur-spin 0.9s linear infinite;
+}
+@keyframes ur-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 更新弹层关闭按钮：绝对定位到右上角 */
+.update-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 11px;
+  background: #f6f1e7;
+  color: var(--ink-soft);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.update-close:active {
+  background: var(--line);
+}
+
+/* 发版说明：可滚动，避免长说明把按钮挤出屏幕 */
+.update-notes {
+  background: #fdf9f1;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin: 10px 0 14px;
+  max-height: 34vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.update-notes p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.update-notes p:last-child {
+  margin-bottom: 0;
+}
+/* 常见写法是「1. xxx / - xxx / · xxx」，统一缩进成列表观感 */
+.update-notes p::before {
+  content: '·';
+  margin-right: 6px;
+  color: var(--green);
+  font-weight: 900;
+}
+
+.update-err {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #e14b4b;
+  background: #ffe3e3;
+  border-radius: 12px;
+  padding: 8px 14px;
+  margin: 0 0 12px;
+}
+
+/* 下载进度 */
+.update-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  margin: 6px 0 14px;
+}
+.update-progress .bar {
+  width: 100%;
+  height: 12px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+.update-progress .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--green);
+  transition: width 0.2s ease-out;
+}
+.update-progress span {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink-soft);
 }

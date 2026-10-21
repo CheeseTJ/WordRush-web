@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 品牌绿：与前端 theme_color / manifest 一致 -->
+    <color name="ic_launcher_background">#58CC02</color>
+</resources>

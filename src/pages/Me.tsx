@@ -5,6 +5,7 @@ import { currentVoice, setVoice, VOICE_OPTIONS, gamifyEnabled, setGamifyEnabled 
 import { previewVoice, resetSpeakCache } from '@/api/client'
 import { useApp } from '@/state/store'
 import { MeStats } from '@/components/MeStats'
+import { UpdateRow } from '@/components/UpdateRow'
 import { toast, confetti, buzz } from '@/ui'
 
 const PETS = ['🐣', '🐤', '🦜', '🦉', '🐬']
@@ -136,6 +137,8 @@ export default function Me() {
             </div>
             <span className="arr">{gamify ? '宝箱 / 红心 / 任务 · 开' : '关'}</span>
           </button>
+          {/* 检查更新：只在原生 App 内渲染（UpdateRow 自己判定并返回 null） */}
+          <UpdateRow />
         </div>
 
         <button
