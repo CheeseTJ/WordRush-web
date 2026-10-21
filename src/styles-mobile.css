@@ -50,14 +50,16 @@
   min-width: 0;
 }
 
-/* 底部 dock：通栏 */
+/* 底部 dock：通栏
+ * 上下留白要视觉对称：顶部 8px 是纯白；底部除了 8px 白，还要容纳选中项 4px 的
+ * 实心投影，所以写 12px（8 + 4）。写成 16px 会让底部比顶部多出一倍白。 */
 .dock {
   position: relative;
   z-index: 10;
   display: flex;
   gap: 4px;
   margin: 0 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
-  padding: 8px 10px 16px; /* 底部留足空间，选中态下阴影不贴边 */
+  padding: 8px 10px 12px;
   background: #fff;
   border-radius: 26px;
   box-shadow: 0 8px 0 var(--line), 0 16px 30px rgba(150, 120, 80, 0.2);

@@ -139,9 +139,11 @@
   color: var(--ink-soft);
 }
 
+/* 输入条高度账：输入框 52px（含 2px 边框），两侧按钮盒子 48px + 4px 实心投影 = 52px。
+ * 用 flex-start 对齐后，按钮的「投影底边」与输入框底边严丝合缝，三件东西视觉等高。 */
 .chat-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
@@ -150,8 +152,8 @@
  * 旧版把麦克风既当录音键又当切模式键，两边语义打架，现在拆开。 */
 .mode-toggle {
   flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 2px solid var(--line);
   background: var(--card);
@@ -159,12 +161,12 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  box-shadow: 0 3px 0 var(--line-d);
+  box-shadow: 0 4px 0 var(--line-d);
   transition: transform 0.12s var(--spr), color 0.15s;
 }
 .mode-toggle:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--line-d);
+  box-shadow: 0 2px 0 var(--line-d);
 }
 .mode-toggle svg {
   display: block;
@@ -174,8 +176,8 @@
 .ptt {
   flex: 1;
   min-width: 0;
-  height: 52px;
-  border-radius: 26px;
+  height: 48px;
+  border-radius: 24px;
   border: 2px solid var(--line);
   background: var(--card);
   color: var(--ink);
@@ -188,6 +190,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
+  box-shadow: 0 4px 0 var(--line-d);
   /* 移动端长按不触发选中/系统菜单 */
   -webkit-user-select: none;
   user-select: none;
@@ -199,13 +202,14 @@
   display: block;
 }
 .ptt:active {
-  transform: scale(0.985);
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--line-d);
 }
 .ptt.rec {
   background: var(--green-l);
   border-color: var(--green);
   color: var(--green-d);
-  box-shadow: 0 3px 0 var(--green-d);
+  box-shadow: 0 4px 0 var(--green-d);
 }
 .ptt:disabled {
   opacity: 0.5;
@@ -247,14 +251,14 @@
 
 .chat-send {
   flex: 0 0 auto;
-  height: 52px;
-  padding: 0 20px;
-  border-radius: 26px;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 24px;
   border: none;
   background: var(--blue);
   color: #fff;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 800;
   cursor: pointer;
   box-shadow: 0 4px 0 var(--blue-d);
   display: inline-flex;
@@ -264,8 +268,13 @@
 .chat-send svg {
   display: block;
 }
+.chat-send:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--blue-d);
+}
 .chat-send:disabled {
   opacity: 0.5;
   cursor: default;
+  transform: none;
   box-shadow: 0 4px 0 var(--blue-d);
 }
