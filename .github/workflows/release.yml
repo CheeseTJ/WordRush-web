@@ -43,8 +43,25 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Point Gradle at the preinstalled Android SDK
+        # ubuntu-latest 镜像自带 Android SDK（含 build-tools / platform），
+        # 不需要 android-actions/setup-android —— 它现在会去装已废弃的
+        # "tools" 包（Failed to find package 'tools'）直接失败。
+        # 这里只把路径显式导出，并确保 AGP 需要的 build-tools 与平台存在。
+        run: |
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          echo "SDK 路径: $SDK"
+          ls "$SDK" 2>/dev/null | head
+          # 缺什么补什么（runner 镜像偶尔滞后于 AGP 要求的版本）
+          if [ ! -d "$SDK/platforms/android-36" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" >/dev/null
+          fi
+          if [ ! -d "$SDK/build-tools/35.0.0" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0" >/dev/null
+          fi
+          ls "$SDK/build-tools" "$SDK/platforms"
 
       - name: Install dependencies
         run: npm ci
