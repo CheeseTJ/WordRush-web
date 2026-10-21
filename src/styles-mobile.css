@@ -58,7 +58,7 @@
   z-index: 10;
   display: flex;
   gap: 4px;
-  margin: 0 16px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  margin: 0 16px calc(var(--safe-bottom) + 12px);
   padding: 8px 10px 12px;
   background: #fff;
   border-radius: 26px;

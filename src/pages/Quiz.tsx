@@ -8,7 +8,7 @@ import { assessSpeak, prefetchSpeak, speakWord } from '@/api/client'
 import { useApp } from '@/state/store'
 import { fetchReviewQueue } from '@/api/client'
 import type { WordResult } from '@/api/client'
-import { confetti, toast, buzz, sfxCorrect, sfxWrong } from '@/ui'
+import { confetti, confettiAnchor, toast, buzz, sfxCorrect, sfxWrong } from '@/ui'
 
 /* ==================== 题型定义 ==================== */
 
@@ -374,7 +374,7 @@ export default function Quiz() {
         }
         return n
       })
-      confetti(16, ['#58CC02', '#FFC800', '#1CB0F6'])
+      confetti(16, ['#58CC02', '#FFC800', '#1CB0F6'], confettiAnchor())
       sfxCorrect()
       buzz(12)
       setTimeout(next, 650)
@@ -933,7 +933,7 @@ function SpeakCard({
     answeredRef.current = true
     const result: WordResult = { id: word.id, ok }
     if (ok) {
-      confetti(14, ['#58CC02', '#1CB0F6'])
+      confetti(14, ['#58CC02', '#1CB0F6'], confettiAnchor())
       buzz(12)
     } else {
       buzz([26, 44, 26])
@@ -1287,7 +1287,7 @@ function MatchCard({
       setSelR(null)
       if (ns.size === words.length && !answeredRef.current) {
         answeredRef.current = true
-        confetti(20, ['#58CC02', '#FFC800', '#1CB0F6'])
+        confetti(20, ['#58CC02', '#FFC800', '#1CB0F6'], confettiAnchor())
         setTimeout(() => onAnswer(true, words.map((w) => ({ id: w.id, ok: true }))), 550)
       }
     } else {

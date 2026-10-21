@@ -102,6 +102,24 @@ button:disabled {
   cursor: default;
 }
 
+/* ---------- 系统安全区 ----------
+ * 只用一个变量来源，避免两套值打架：
+ *   默认值 = env(safe-area-inset-*)   浏览器/PWA（视口已适配时由系统给出）
+ *   原生壳 = MainActivity 通过 insets 注入同名变量覆盖上面这层
+ *
+ * 不用 max() 是因为它需要 Chrome 79+，而 Android 7 的老 WebView 可能没有；
+ * 用「变量覆盖」实现同样的优先级，兼容性更好。
+ *
+ * WebView 铺满全屏后，网页背景能一直画到状态栏/导航栏下面，
+ * 内容则靠这里的 padding 避开系统栏。
+ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
 /* ---------- HUD ---------- */
 .hud {
   flex: 0 0 auto;
@@ -109,7 +127,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) 20px 12px;
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
 }
 .pill {
   display: flex;
@@ -1339,7 +1357,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 32px 28px calc(env(safe-area-inset-bottom, 0px) + 32px);
+  padding: 32px 28px calc(var(--safe-bottom) + 32px);
   max-width: 400px;
   margin: 0 auto;
 }
@@ -1483,7 +1501,7 @@ button:disabled {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  bottom: calc(var(--safe-bottom) + 96px);
   transform: translateX(-50%) translateY(16px);
   background: var(--ink);
   color: var(--cream);
@@ -1775,7 +1793,7 @@ button:disabled {
 /* 每日任务横幅（地图顶部悬浮） */
 .tasks-banner {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  top: calc(var(--safe-top) + 8px);
   left: 12px;
   right: 12px;
   z-index: 4;

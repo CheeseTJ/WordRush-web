@@ -3,7 +3,7 @@ import { findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
 import { fetchReviewQueue, postReviewResults, markReviewDone, clearReviewCache } from '@/api/client'
 import { useApp } from '@/state/store'
-import { confetti, toast, buzz } from '@/ui'
+import { confetti, confettiAnchor, toast, buzz } from '@/ui'
 
 const QUEUE_LIMIT = 10
 
@@ -47,7 +47,7 @@ export default function Review() {
     setFly(ok ? 'known' : 'unknown')
     if (ok) {
       setKnown((k) => k + 1)
-      confetti(12, ['#58CC02', '#FFC800'])
+      confetti(12, ['#58CC02', '#FFC800'], confettiAnchor())
       buzz(12)
     } else {
       buzz(24)

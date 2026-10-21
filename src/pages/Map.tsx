@@ -5,7 +5,7 @@ import { availableStories } from '@/data/stories'
 import { useApp } from '@/state/store'
 import { fetchTasks, claimTask, type Task } from '@/api/client'
 import { gamifyEnabled } from '@/data/exp'
-import { confetti, toast, Mascot } from '@/ui'
+import { confetti, confettiAnchor, toast, Mascot } from '@/ui'
 
 const PHRASES = [
   '今天也要加油鸭！',
@@ -65,7 +65,7 @@ export default function Map() {
     try {
       const gems = await claimTask(id)
       toast(`领取成功 +${gems} 宝石 💎`)
-      confetti(18, ['#FFC800', '#58CC02', '#1CB0F6'])
+      confetti(18, ['#FFC800', '#58CC02', '#1CB0F6'], confettiAnchor())
       loadTasks()
       void refresh()
     } catch (e) {

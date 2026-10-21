@@ -3,6 +3,7 @@ package top.taojun.eng;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.WebView;
 
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -50,20 +51,41 @@ public class MainActivity extends BridgeActivity {
         controller.setAppearanceLightStatusBars(true);
         controller.setAppearanceLightNavigationBars(true);
 
-        // 给 WebView 本身补安全区（而不是根 content view）：
-        // content view 加 padding 会让整体布局缩小，且与前端已有的
-        // env(safe-area-inset-*) 叠加时容易重复留白。给 WebView 加 top padding
-        // 等价于让网页从状态栏下方开始渲染，视觉上仍是全屏铺满。
+        // 关键：WebView 本身【不加 padding】，让它铺满整个屏幕（含状态栏区域），
+        // 这样网页的渐变背景会一直画到屏幕顶端，与状态栏无缝融合。
+        // 安全区数值改为通过 CSS 变量下发给网页，由网页自己给内容留出边距——
+        // 给 WebView 加 padding 会让背景从状态栏下方才开始画，造成顶部一条色带。
         View webView = findViewById(R.id.webview);
         if (webView == null) {
-            // 兜底：布局被替换时退回根容器
             webView = findViewById(android.R.id.content);
         }
+        final WebView target = webView instanceof WebView ? (WebView) webView : null;
         ViewCompat.setOnApplyWindowInsetsListener(webView, (v, windowInsets) -> {
             Insets bars = windowInsets.getInsets(
                     WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
-            // 顶部留出状态栏，底部留出导航条，左右留出刘海/圆角安全区
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+
+            // 单位换算：px → CSS px（dp）。WebView 的 CSS 像素按 density 缩放，
+            // 不做换算的话在高密度屏上边距会偏大几倍。
+            float density = getResources().getDisplayMetrics().density;
+            int top = Math.round(bars.top / density);
+            int bottom = Math.round(bars.bottom / density);
+            int left = Math.round(bars.left / density);
+            int right = Math.round(bars.right / density);
+
+            // 注入 CSS 变量。网页侧用 var(--safe-top) 等消费，缺省 0px。
+            String js = String.format(
+                    "(function(){var s=document.documentElement.style;"
+                            + "s.setProperty('--safe-top','%dpx');"
+                            + "s.setProperty('--safe-bottom','%dpx');"
+                            + "s.setProperty('--safe-left','%dpx');"
+                            + "s.setProperty('--safe-right','%dpx');"
+                            + "})()",
+                    top, bottom, left, right);
+            if (target != null) {
+                target.post(() -> target.evaluateJavascript(js, null));
+            }
+
+            // 不消费 insets：让 WebView 继续铺满，同时也别让系统再给我们加内边距
             return WindowInsetsCompat.CONSUMED;
         });
     }

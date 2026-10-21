@@ -19,7 +19,7 @@ import {
   type AppVersion,
 } from '@/api/appVersion'
 import { isNativeApp } from '@/platform'
-import { toast, confetti, buzz } from '@/ui'
+import { toast, buzz } from '@/ui'
 import { ArrowClockwise, DownloadSimple, X } from '@phosphor-icons/react'
 
 export type UpdatePhase = 'idle' | 'checking' | 'downloading' | 'done'
@@ -107,8 +107,9 @@ export function UpdateRow() {
     if (res.has_update) {
       setOpen(true)
     } else {
+      // 「已是最新版本」只是信息性反馈，不撒彩纸：
+      // 粒子特效留给答题答对这类「获得成就」的时刻，否则会显得廉价的到处庆祝
       toast(`已是最新版本 v${installed || res.version || ''}`)
-      confetti(8, ['#58CC02', '#1CB0F6'])
     }
   }
 
@@ -163,7 +164,7 @@ export function UpdateRow() {
           ) : hasUpdate ? (
             <span className="tag">新版本 v{info?.version}</span>
           ) : (
-            `v${installed}${build ? ` (${build})` : ''} ›`
+            `v${installed} ›`
           )}
         </span>
       </button>

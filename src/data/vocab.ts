@@ -45,7 +45,67 @@ export interface LoadedBook {
 export const DEFAULT_BOOK = 'junior'
 const BOOK_KEY = 'wordrush.book'
 
-export const BOOKS: BookMeta[] = BOOK_MANIFEST
+/*
+ * 词库难度分级。
+ *
+ * 按「学段 + 考试目标」的真实难度递增排序，而不是按词数或字母序——
+ * 词数会误导人（考研红宝书 6326 词最多，但难度不等于最基础；GRE 3027 词却最难）。
+ *
+ * 分四档，与国内学习者熟悉的进阶路径一致：
+ *   小学 → 初中 → 高中 → 四级 → 六级 → 考研 / 雅思 / 托福 / GRE
+ * 同一档内按考试含金量由易到难。
+ */
+export const BOOK_LEVELS = [
+  { id: 'basic', name: '入门', desc: '小学 · 初中' },
+  { id: 'senior', name: '高中', desc: '高中 · 进阶' },
+  { id: 'cet', name: '大学', desc: '四级 · 六级' },
+  { id: 'master', name: '深造', desc: '考研 · 留学' },
+] as const
+
+export type BookLevelId = (typeof BOOK_LEVELS)[number]['id']
+
+/** 每个词库所属难度档与档内顺序。未列出的词库排到最后，避免新增词库时漏配而消失。 */
+const BOOK_DIFFICULTY: Record<string, { level: BookLevelId; rank: number }> = {
+  primary: { level: 'basic', rank: 1 },
+  junior: { level: 'basic', rank: 2 },
+  senior: { level: 'senior', rank: 1 },
+  cet4: { level: 'cet', rank: 1 },
+  cet6: { level: 'cet', rank: 2 },
+  kaoyan: { level: 'master', rank: 1 },
+  ielts: { level: 'master', rank: 2 },
+  toefl: { level: 'master', rank: 3 },
+  gre: { level: 'master', rank: 4 },
+}
+
+/** 难度排序后的词库清单（由易到难）。选择器与地图都用这个顺序。 */
+export const BOOKS: BookMeta[] = [...BOOK_MANIFEST].sort((a, b) => {
+  const la = BOOK_LEVELS.findIndex((l) => l.id === BOOK_DIFFICULTY[a.id]?.level)
+  const lb = BOOK_LEVELS.findIndex((l) => l.id === BOOK_DIFFICULTY[b.id]?.level)
+  // 未配置难度的排最后（用 LEVELS.length 当哨兵值）
+  const ra = la < 0 ? BOOK_LEVELS.length : la
+  const rb = lb < 0 ? BOOK_LEVELS.length : lb
+  if (ra !== rb) return ra - rb
+
+  const ka = BOOK_DIFFICULTY[a.id]?.rank ?? 99
+  const kb = BOOK_DIFFICULTY[b.id]?.rank ?? 99
+  if (ka !== kb) return ka - kb
+
+  // 兜底：同档同序时按词数由少到多，保证顺序稳定（sort 不是稳定排序的旧引擎也不会乱跳）
+  return a.words - b.words
+})
+
+/** 查某个词库所属难度档（未配置时返回最后一档，仅供 UI 分组用） */
+export function bookLevel(id: string): BookLevelId {
+  return BOOK_DIFFICULTY[id]?.level ?? BOOK_LEVELS[BOOK_LEVELS.length - 1].id
+}
+
+/** 按难度档分组，空档自动跳过 */
+export function booksByLevel(): { level: (typeof BOOK_LEVELS)[number]; books: BookMeta[] }[] {
+  return BOOK_LEVELS.map((level) => ({
+    level,
+    books: BOOKS.filter((b) => bookLevel(b.id) === level.id),
+  })).filter((g) => g.books.length > 0)
+}
 
 /** 当前词库 id（localStorage 持久化） */
 export function currentBookId(): string {

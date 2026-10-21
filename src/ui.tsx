@@ -14,16 +14,43 @@ import {
 import { isNativeApp } from '@/platform'
 
 /** 全屏彩纸：在 body 上撒 n 颗色块 */
-export function confetti(n: number, colors: string[]): void {
+/**
+ * 全屏彩纸：在 body 上撒 n 颗色块。
+ *
+ * anchor 决定迸发原点：
+ *  - 传元素（如被点击的按钮）：粒子从该元素中心向四周散开，反馈"点这里得到了奖励"
+ *  - 不传：退化为屏幕中部（历史行为，用于过关结算这类没有单一触发点的场合）
+ *
+ * 动画仍用 .spark 的 --dx/--dy，改为相对原点位移，而不是按屏幕百分比定位——
+ * 之前的固定 top:55% 会让所有调用点看起来都在屏幕中央，与点击位置无关。
+ */
+export function confetti(n: number, colors: string[], anchor?: Element | null): void {
+  let originX = 0
+  let originY = 0
+  if (anchor) {
+    const r = anchor.getBoundingClientRect()
+    // 元素可能已滚动出视口，钳制一下避免粒子飞到屏幕外看不见
+    originX = Math.min(Math.max(r.left + r.width / 2, 0), window.innerWidth)
+    originY = Math.min(Math.max(r.top + r.height / 2, 0), window.innerHeight)
+  } else {
+    originX = window.innerWidth / 2
+    // 55% 而非 50%：视觉中心略偏下更像"从内容里迸出来"，也是原有观感
+    originY = window.innerHeight * 0.55
+  }
+
+  // 溅射半径按屏幕尺寸收敛，小屏上不会超出边界太多
+  const spread = Math.min(window.innerWidth, window.innerHeight) * 0.3
+
   for (let i = 0; i < n; i++) {
     const s = document.createElement('i')
     s.className = 'spark'
     const a = Math.random() * Math.PI * 2
-    const d = 70 + Math.random() * 200
+    const d = spread * (0.35 + Math.random() * 0.65)
     s.style.setProperty('--dx', `${Math.cos(a) * d}px`)
     s.style.setProperty('--dy', `${Math.sin(a) * d}px`)
-    s.style.left = `${Math.random() * 80 + 10}%`
-    s.style.top = '55%'
+    // 原点做小幅抖动，避免所有粒子从同一像素射出，显得呆板
+    s.style.left = `${originX + (Math.random() - 0.5) * 12}px`
+    s.style.top = `${originY + (Math.random() - 0.5) * 12}px`
     const c = colors[i % colors.length]
     s.style.background = c
     s.style.boxShadow = `0 0 10px ${c}`
@@ -34,6 +61,33 @@ export function confetti(n: number, colors: string[]): void {
     document.body.appendChild(s)
     setTimeout(() => s.remove(), 1300)
   }
+}
+
+/**
+ * 找出「当前这次交互的触发元素」，作为彩纸迸发原点。
+ *
+ * 优先 activeElement：用户点按钮时它仍是该按钮，点击后立即同步读取就能拿到。
+ * 退化到最近一次 pointerdown 的目标（有些 WebView 里点击后 activeElement 会跑掉）。
+ *
+ * 拿不到时返回 null，confetti 会退回屏幕中部——不至于因为找不到锚点就不撒了。
+ */
+let lastPointerTarget: Element | null = null
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      const t = e.target
+      lastPointerTarget = t instanceof Element ? t : null
+    },
+    // 捕获阶段记录，避免被子元素 stopPropagation 拦掉
+    true,
+  )
+}
+
+export function confettiAnchor(): Element | null {
+  const active = document.activeElement
+  if (active && active !== document.body && active instanceof Element) return active
+  return lastPointerTarget
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined

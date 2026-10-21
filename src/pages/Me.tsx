@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BOOKS, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vocab'
+import { BOOKS, booksByLevel, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vocab'
 import { currentVoice, setVoice, VOICE_OPTIONS, gamifyEnabled, setGamifyEnabled } from '@/data/exp'
 import { previewVoice, resetSpeakCache } from '@/api/client'
 import { useApp } from '@/state/store'
 import { MeStats } from '@/components/MeStats'
 import { UpdateRow } from '@/components/UpdateRow'
-import { toast, confetti, buzz } from '@/ui'
+import { toast, buzz } from '@/ui'
 
 const PETS = ['🐣', '🐤', '🦜', '🦉', '🐬']
 
@@ -41,7 +41,8 @@ export default function Me() {
     if (!av) return
     const cur = av.textContent || PETS[0]
     av.textContent = PETS[(PETS.indexOf(cur) + 1) % PETS.length]
-    confetti(10, ['#58CC02', '#1CB0F6'])
+    // 换头像只给轻微触感，不撒彩纸：粒子特效留给答题答对这类「获得成就」时刻
+    buzz(8)
   }
 
   function chooseBook(b: BookMeta) {
@@ -160,23 +161,34 @@ export default function Me() {
         <div className="fill" onClick={(e) => e.target === e.currentTarget && setPickerOpen(false)}>
           <div className="box" style={{ textAlign: 'left' }}>
             <h2 style={{ textAlign: 'center' }}>选择词库</h2>
+            <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--ink-soft)', marginTop: -4 }}>
+              按难度由易到难排列
+            </p>
             <div className="book-list">
-              {BOOKS.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  className={`book-item ${b.id === bookId ? 'on' : ''}`}
-                  onClick={() => chooseBook(b)}
-                >
-                  <span className="bi-em">{b.id === bookId ? '📖' : '📕'}</span>
-                  <span className="bi-tx">
-                    <b>{b.name}</b>
-                    <span>
-                      {b.desc} · {b.words} 词 {b.units} 关
-                    </span>
-                  </span>
-                  {b.id === bookId && <span className="bi-check">✓</span>}
-                </button>
+              {booksByLevel().map((g) => (
+                <div key={g.level.id} className="book-group">
+                  <div className="book-group-head">
+                    <b>{g.level.name}</b>
+                    <span>{g.level.desc}</span>
+                  </div>
+                  {g.books.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      className={`book-item ${b.id === bookId ? 'on' : ''}`}
+                      onClick={() => chooseBook(b)}
+                    >
+                      <span className="bi-em">{b.id === bookId ? '📖' : '📕'}</span>
+                      <span className="bi-tx">
+                        <b>{b.name}</b>
+                        <span>
+                          {b.desc} · {b.words} 词 {b.units} 关
+                        </span>
+                      </span>
+                      {b.id === bookId && <span className="bi-check">✓</span>}
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
             <button type="button" className="btn alt" onClick={() => setPickerOpen(false)}>

@@ -12,6 +12,37 @@
 .book-list::-webkit-scrollbar {
   display: none;
 }
+
+/* 难度分组：每组一个标题 + 若干词库。组间距大于组内间距，
+   让「档」的层级一眼可见，而不是九本书糊成一片。 */
+.book-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.book-group + .book-group {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.book-group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 2px;
+}
+.book-group-head b {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--green-d);
+  letter-spacing: 0.04em;
+}
+.book-group-head span {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
 .book-item {
   display: flex;
   align-items: center;
