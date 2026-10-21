@@ -42,6 +42,14 @@
   .map-foot {
     display: none;
   }
+  /* 侧栏已展示成就徽章，我的页不再重复一份 */
+  .me-badges {
+    display: none;
+  }
+  /* 我的页自带近 14 天图，侧栏 7 天周图在该页隐藏 */
+  .app.on-me .side-week {
+    display: none;
+  }
   .dock {
     position: absolute;
     left: 18px;

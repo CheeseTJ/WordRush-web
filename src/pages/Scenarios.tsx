@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Check, ClipboardText, Lock } from '@phosphor-icons/react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, Check, ClipboardText, Lock } from '@phosphor-icons/react'
 import { claimTask, fetchTasks, type Task } from '@/api/client'
 import { dailyScenarios, dayLabel, scenarioDoneToday, type Scenario } from '@/data/scenarios'
 import { gamifyEnabled } from '@/data/exp'
@@ -127,6 +127,17 @@ export default function Scenarios() {
       <div className="scn-note">
         <span>🎬 每场固定 6 轮 · 达成目标拿星星 · 结算有专属点评</span>
       </div>
+
+      {/* 官方课程入口：放这里是因为本页就是「实用英语」，
+          AMEP 教的银行开户 / 看医生 / 租房与场景完全同语义 */}
+      <Link className="crs-invite" to="/courses">
+        <span className="q">想练真实生活里的英语？</span>
+        <span className="a">澳洲政府有 5 级免费课，从问价到面试。</span>
+        <span className="go">
+          查看官方课程
+          <ArrowRight size={13} weight="bold" aria-hidden />
+        </span>
+      </Link>
 
       {gamifyEnabled() && chatTask && (
         <div className="scn-task">

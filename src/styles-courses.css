@@ -1,0 +1,335 @@
+/* ============================================================
+ * 官方课程（AMEPOnline 导航）· 迭代六
+ *
+ * 设计意图：这块内容在语义上属于「他们」（澳洲内政部），不属于我们。
+ * 与粘土风的区分不靠新增色相（加深蓝/深灰做「权威感」是最常见的默认套路），
+ * 而靠四件事的「缺失」：
+ *   1. 没有 box-shadow: 0 Npx 0  （粘土卡是浮起的，这块是压平印上去的）
+ *   2. 没有 rotate(-4deg)        （场景卡图标倾斜，这块不倾）
+ *   3. 不用 Fredoka              （圆体只属于我们自己的内容）
+ *   4. 圆角 20px → 10px
+ *
+ * 全部选择器 .crs- 前缀，不与 styles.css / styles-scenario.css 交叉。
+ * 断点与全站一致：<600 手机 / 600~979 平板 / ≥980 桌面。
+ * ============================================================ */
+
+/* ---------- 入口横幅：嵌在今日情景页底部 ---------- */
+
+.crs-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 14px 15px 13px;
+  background: var(--crs-paper);
+  border: 1.5px solid var(--line-d);
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+.crs-invite .q {
+  font-size: 13.5px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--ink);
+}
+/* 行长：这句 21 字要单行装下，18em 会把「试。」挤到第二行 */
+.crs-invite .a {
+  max-width: 22em;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.crs-invite .go {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--green-d);
+}
+.crs-invite .go svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+/* ---------- 课程页 ----------
+ * 背景：其他页面一律继承 body 的奶油底 + 三处径向光斑（Map 也只是透明滚动区，
+ * 不再叠自己的背景层），没有任何页整块换底色。
+ *
+ * 前两版都失败的共同原因：纸面「满铺」到视口边缘。上下做渐变只是把左右两条
+ * 纵向硬边留着——纸白与奶油在一根直线上对撞，横向那根线在宽屏尤其刺眼。
+ *
+ * 现在改为**内缩的独立纸面**：四周留出间距，圆角收边。
+ * 视觉语义也更准了——不是「这一页换了底色」，而是「教室墙外钉着一张纸」，
+ * 纸与墙之间本就应该有缝。间距也是这一页与粘土布局唯一的连接方式，
+ * 不需要渐变去缝补。 */
+
+.crs-page {
+  /* 纸面贴合内容高度（不撑满视口），内容超长时自身滚动。
+     .view 默认 flex:1 会把纸拉成整屏，内容少时下方空一大片，失去「一张纸」的观感。 */
+  flex: 0 1 auto;
+  max-height: calc(100% - 22px);
+  margin: 10px 12px 12px;
+  padding: 12px 14px 16px;
+  gap: 10px;
+  overflow-y: auto;
+  background: var(--crs-paper);
+  border: 1px solid var(--line-d);
+  border-radius: 16px;
+  /* 刻意不给 box-shadow：粘土卡是浮起的，这张纸是贴平钉上去的 */
+}
+
+/* 行长用 em 而不是 ch：ch 依赖「0」字宽，中文正文字体下只有 7.5px，
+   用 ch 会把整句切成两三行。这句 19 字，22em 刚好一行放下。 */
+.crs-lede {
+  padding: 0 2px;
+  max-width: 22em;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* ---------- 序列轨 ----------
+ * 用真实编号而不是「01 / 02」：内容本身是有序的能力阶梯，编号承担结构信息；
+ * 而 tracked-out 的全大写标签与补零编号是 AI 生成页的常见签名，这里避开。
+ *
+ * 轨道用「逐项线段」而非一整条：每个条目的标题可能折成两行，行高不固定，
+ * 用绝对值算整条线的首尾一定会错位；线段从本节点圆心画到下一节点圆心，
+ * 天然跟随行高。节点圆心 = padding-top(5) + 半径(13) = 18px。 */
+
+.crs-list {
+  position: relative;
+  list-style: none;
+  margin-top: 12px;
+  padding-top: 2px;
+}
+
+.crs-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  column-gap: 14px;
+  align-items: start;
+  padding: 5px 0 15px;
+}
+.crs-item:last-child {
+  padding-bottom: 4px;
+}
+/* 线段：从本节点圆心到下一节点圆心，长度恰为条目高度 */
+.crs-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 18px;
+  bottom: -18px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--crs-rail);
+  transform-origin: top center;
+  /* 全页唯一一处主动入场：轨道自上而下逐段长出来，之后不再动 */
+  animation: crsRail 0.3s ease-out both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes crsRail {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* 整行即链接：每行不再重复「打开官网」四个字，只留一个安静的箭头 */
+.crs-link {
+  display: contents;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 节点：实心背景盖住轨道线 */
+.crs-num {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-d);
+  background: var(--crs-paper);
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+.crs-item.seen .crs-num {
+  background: var(--green);
+  border-color: var(--green-d);
+  color: #fff;
+}
+
+.crs-body {
+  min-width: 0;
+  padding-top: 2px;
+}
+
+/* 标题与箭头同行：箭头对齐到条目右边缘，形成一列参考线；
+   若跟随文字末尾，中文长短不一会让箭头参差，视觉上比行长更难忍。 */
+.crs-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.crs-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--ink);
+  transition: color 0.15s;
+}
+.crs-item.seen .crs-title {
+  color: #6b6555;
+}
+
+.crs-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.crs-seen {
+  color: var(--green-d);
+}
+
+.crs-arrow {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  color: var(--crs-arrow);
+  transition: color 0.15s;
+}
+
+/* 脚注：宽屏用 2 行、窄屏 3 行都成立，不做硬性单行要求 */
+.crs-foot {
+  margin-top: 18px;
+  padding-top: 13px;
+  border-top: 1.5px solid var(--line-d);
+  max-width: 30em;
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+/* 纸白底上 .back 的白色背景失去边界，改用细描边区分 */
+.crs-page .back {
+  background: transparent;
+  border: 1.5px solid var(--line-d);
+  box-shadow: none;
+}
+
+/* ---------- 交互态：仅指针设备 ----------
+ * 触屏没有 hover，若不加限制会在点击后留下「粘住」的悬停色 */
+
+@media (hover: hover) {
+  .crs-invite:hover {
+    border-color: #d8c7ac;
+  }
+  .crs-link:hover .crs-title {
+    color: var(--green-d);
+  }
+  .crs-link:hover .crs-arrow {
+    color: var(--green-d);
+  }
+  .crs-item.seen .crs-link:hover .crs-title {
+    color: var(--green-d);
+  }
+}
+
+/* 键盘焦点：全站统一 2.5px 蓝色描边 */
+.crs-invite:focus-visible {
+  outline: 2.5px solid var(--blue);
+  outline-offset: 2px;
+}
+.crs-link:focus-visible {
+  outline: 2.5px solid var(--blue);
+  outline-offset: 3px;
+}
+
+/* 按下反馈：与全站「下沉」语言一致，但不加回弹曲线（这块是压平的） */
+.crs-invite:active {
+  transform: translateY(1px);
+}
+
+/* ---------- 减少动效 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .crs-item:not(:last-child)::after {
+    animation: none;
+    transform: none;
+  }
+  .crs-invite:active {
+    transform: none;
+  }
+  .crs-title,
+  .crs-arrow,
+  .crs-invite {
+    transition: none;
+  }
+}
+
+/* ---------- 平板档（600px ~ 979.98px）----------
+ * 右侧有 280px 信息栏，可用宽度变窄：正文行宽放开，避免每行过短 */
+
+@media (min-width: 600px) and (max-width: 979.98px) {
+  .crs-page {
+    padding: 16px 20px 20px;
+  }
+  .crs-lede {
+    max-width: 26em;
+  }
+  .crs-foot {
+    max-width: 38em;
+  }
+  .crs-invite .a {
+    max-width: 26em;
+  }
+}
+
+/* ---------- 桌面档（≥980px）----------
+ * 可用宽度充裕：正文不必再靠 ch 上限硬压，改为整页限宽居中。
+ * 不改成两列网格——竖轨在两列下无法正确串联阅读顺序，会误导「1→5 的先后」；
+ * 限宽后每行保持在舒适行长内，轨道仍是唯一视觉主轴。 */
+
+@media (min-width: 980px) {
+  /* 纸面跟随内容宽度并居中：桌面主内容区有 864px，若纸铺满则左右各空 200px，
+     看起来像一块空地而不是一张纸。520px ≈ 内容宽 + 两侧内边距，纸与内容贴合。 */
+  .crs-page {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 18px 22px 20px;
+  }
+  .crs-page > * {
+    width: 100%;
+    max-width: none;
+  }
+  .crs-lede {
+    max-width: 26em;
+  }
+  .crs-foot {
+    max-width: 38em;
+  }
+}

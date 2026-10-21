@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Barbell, ChartBar, ChatCircleText, Flame, Heart, House, Lightning, User } from '@phosphor-icons/react'
+import { Barbell, ChatCircleText, Flame, Heart, House, Lightning, User } from '@phosphor-icons/react'
 import { useApp } from '@/state/store'
 import { Sidebar } from '@/components/Sidebar'
 import { gamifyEnabled } from '@/data/exp'
@@ -34,12 +34,14 @@ export default function Home() {
   const nav = useNavigate()
   const loc = useLocation()
   const immersive = loc.pathname.startsWith('/quiz/') || loc.pathname.startsWith('/story/')
+  // 我的页自带近 14 天图表，侧栏的 7 天周图在该页会与之重复，用类名在该页隐藏
+  const onMe = loc.pathname === '/me'
   const shownXp = useTick(profile.xp)
   const shownStreak = useTick(profile.streak_days)
   const hearts = profile.hearts ?? 5
 
   return (
-    <div className={immersive ? 'app immersive' : 'app'}>
+    <div className={`app${immersive ? ' immersive' : ''}${onMe ? ' on-me' : ''}`}>
       {!immersive && (
         <header className="hud stg" style={{ ['--d' as string]: 0 }}>
           {gamifyEnabled() && (
@@ -57,7 +59,7 @@ export default function Home() {
             type="button"
             className="pill streak"
             title="连续学习天数"
-            onClick={() => nav('/stats')}
+            onClick={() => nav('/me')}
           >
             <Flame weight="fill" size={16} style={{ color: '#FF9600' }} />
             <span className="num">{shownStreak}</span> 天
@@ -83,9 +85,8 @@ export default function Home() {
       {!immersive && (
         <nav className="dock stg" style={{ ['--d' as string]: 3 }}>
           <DockLink to="/map" icon={<House weight="fill" />} label="学习" />
-          <DockLink to="/review" icon={<Barbell weight="fill" />} label="复习" />
           <DockLink to="/scenarios" icon={<ChatCircleText weight="fill" />} label="情景" />
-          <DockLink to="/stats" icon={<ChartBar weight="fill" />} label="统计" />
+          <DockLink to="/review" icon={<Barbell weight="fill" />} label="复习" />
           <DockLink to="/me" icon={<User weight="fill" />} label="我的" />
         </nav>
       )}

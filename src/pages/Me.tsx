@@ -4,11 +4,13 @@ import { BOOKS, currentBookId, setCurrentBookId, type BookMeta } from '@/data/vo
 import { currentVoice, setVoice, VOICE_OPTIONS, gamifyEnabled, setGamifyEnabled } from '@/data/exp'
 import { previewVoice, resetSpeakCache } from '@/api/client'
 import { useApp } from '@/state/store'
+import { MeStats } from '@/components/MeStats'
 import { toast, confetti, buzz } from '@/ui'
 
 const PETS = ['🐣', '🐤', '🦜', '🦉', '🐬']
 
-/** 我的页：头像、等级、徽章、词库选择（底部弹层） */
+/** 我的页：头像、等级、学习统计、徽章、词库选择（底部弹层）
+ *  学习统计原为独立的 /stats 页，实际使用中查看频率低，合并到这里反而少一次跳转。 */
 export default function Me() {
   const { profile, refresh, doLogout } = useApp()
   const nav = useNavigate()
@@ -73,7 +75,12 @@ export default function Me() {
           </div>
         </div>
 
-        <div className="panel stg" style={{ ['--d' as string]: 1, marginBottom: 16 }}>
+        {/* 学习统计（原 /stats 页）：指标 + 近 14 天柱状图，随页面一起滚动 */}
+        <MeStats />
+
+        {/* 成就徽章：平板/桌面已有侧栏展示同一组徽章（见 Sidebar.tsx），
+            该档位下由 CSS 隐藏本块，避免同屏两份完全相同的内容 */}
+        <div className="panel stg me-badges" style={{ ['--d' as string]: 3, marginBottom: 16 }}>
           <h3>
             成就徽章<span>BADGES</span>
           </h3>
@@ -87,7 +94,7 @@ export default function Me() {
           </div>
         </div>
 
-        <div className="rows stg" style={{ ['--d' as string]: 2, marginBottom: 16 }}>
+        <div className="rows stg" style={{ ['--d' as string]: 4, marginBottom: 16 }}>
           <button type="button" className="rw" onClick={() => setPickerOpen(true)}>
             <div className="l">
               <span className="ic" style={{ background: 'var(--green-l)' }}>

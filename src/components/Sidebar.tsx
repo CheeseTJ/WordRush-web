@@ -91,8 +91,8 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* 本周图 */}
-      <div className="panel">
+      {/* 本周图（我的页自带近 14 天图，该页由 .on-me 隐藏本块） */}
+      <div className="panel side-week">
         <h3>
           本周学习<span>WORDS</span>
         </h3>

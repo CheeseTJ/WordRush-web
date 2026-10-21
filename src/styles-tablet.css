@@ -37,6 +37,14 @@
   .map-foot {
     display: none; /* 目标卡/笑脸已常驻侧栏 */
   }
+  /* 侧栏已展示成就徽章，我的页不再重复一份 */
+  .me-badges {
+    display: none;
+  }
+  /* 我的页自带近 14 天图，侧栏 7 天周图在该页隐藏 */
+  .app.on-me .side-week {
+    display: none;
+  }
   .dock {
     width: min(400px, 70%);
     margin-left: auto;
