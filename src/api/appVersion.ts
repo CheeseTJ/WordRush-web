@@ -70,7 +70,13 @@ export function fileSizeText(bytes?: number): string {
 /**
  * 下载 APK 到缓存目录并交给系统安装器。
  *
- * 必须落在 cache 目录：res/xml/file_paths.xml 里只声明了 cache-path 与
+ * 为什么必须用 Filesystem.downloadFile 而不是 fetch：
+ * 蒲公英的 downloadURL 是 `www.pgyer.com/app/installUpdate/...`，它返回 302
+ * 跳转到对象存储，且**不返回任何 CORS 头**。WebView 里 fetch 跨域会直接被拦，
+ * 表现就是 "Failed to fetch"（连 302 都拿不到）。
+ * downloadFile 走原生 HTTP 栈（OkHttp），不受同源策略限制，还能带进度回调。
+ *
+ * 必须落在 cache 目录：res/xml/file_paths.xml 只声明了 cache-path 与
  * external-path，FileProvider 只能用这些目录里的文件，否则安装器会
  * 报「解析软件包时出现问题」。
  */
@@ -88,63 +94,28 @@ export async function downloadAndInstall(
     /* 不存在就算了 */
   }
 
-  // Capacitor 的 downloadFile 不回调进度，这里用 fetch + 分块读流自己算。
-  // APK 一般 6~10MB，分块写入并不会更慢，但能给出下载进度。
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`下载失败 ${res.status}`)
-  const total = Number(res.headers.get('content-length') || 0)
+  // 进度事件在 Android 上按 100ms 节流，可以放心直接 setState
+  let handle: { remove: () => Promise<void> } | undefined
+  if (onProgress) {
+    handle = await Filesystem.addListener('progress', (p) => {
+      // progress 是已下载字节数，total 可能为 -1（服务端没给 Content-Length）
+      if (p.contentLength > 0) {
+        onProgress(Math.min(1, p.bytes / p.contentLength))
+      }
+    })
+  }
 
-  const reader = res.body?.getReader()
-  if (!reader) {
-    // 极端情况没有流：整包读进来再写
-    const buf = await res.arrayBuffer()
-    const b64 = arrayBufferToBase64(buf)
-    await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.Cache, recursive: true })
+  try {
+    // 蒲公英的下载地址会 302 跳到对象存储，OkHttp 默认跟随重定向
+    await Filesystem.downloadFile({
+      url,
+      path: fileName,
+      directory: Directory.Cache,
+    })
     onProgress?.(1)
-    await openApk(fileName)
-    return
+  } finally {
+    await handle?.remove().catch(() => {})
   }
-
-  // 分块累积，每累积约 512KB 落盘一次（避免内存里堆整个 APK 的 base64）
-  let received = 0
-  let pending: Uint8Array[] = []
-  let pendingBytes = 0
-  const FLUSH_AT = 512 * 1024
-  let first = true
-
-  const flush = async () => {
-    if (!pendingBytes) return
-    const merged = new Uint8Array(pendingBytes)
-    let off = 0
-    for (const c of pending) {
-      merged.set(c, off)
-      off += c.byteLength
-    }
-    pending = []
-    pendingBytes = 0
-
-    const b64 = arrayBufferToBase64(merged.buffer)
-    if (first) {
-      await Filesystem.writeFile({ path: fileName, data: b64, directory: Directory.Cache, recursive: true })
-      first = false
-    } else {
-      await Filesystem.appendFile({ path: fileName, data: b64, directory: Directory.Cache })
-    }
-  }
-
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value) {
-      pending.push(value)
-      pendingBytes += value.byteLength
-      received += value.byteLength
-      if (pendingBytes >= FLUSH_AT) await flush()
-      if (total > 0) onProgress?.(Math.min(1, received / total))
-    }
-  }
-  await flush()
-  onProgress?.(1)
 
   await openApk(fileName)
 }
@@ -160,17 +131,6 @@ async function openApk(fileName: string): Promise<void> {
     path: uri,
     mimeType: 'application/vnd.android.package-archive',
   })
-}
-
-/** 分片 base64 编码：一次性展开大数组容易触发调用栈溢出 */
-function arrayBufferToBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf)
-  let binary = ''
-  const CHUNK = 0x8000
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
-  }
-  return btoa(binary)
 }
 
 /** 用系统浏览器（或应用内浏览器）打开蒲公英安装页，作为下载失败时的兜底 */

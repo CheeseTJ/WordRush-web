@@ -134,9 +134,11 @@ export function UpdateRow() {
       buzz(14)
     } catch (e) {
       setPhase('idle')
-      const msg = e instanceof Error ? e.message : '下载失败'
-      setErrMsg(msg)
-      toast('下载失败，可尝试打开发布页手动下载')
+      // 不把原生/网络层的英文原文（Failed to fetch、FileNotFoundException…）
+      // 直接甩给用户：换成可操作的指引，并把发布页作为退路
+      const raw = e instanceof Error ? e.message : String(e)
+      console.warn('[update] 下载失败:', raw)
+      setErrMsg('自动下载失败，请点击下方「打开发布页」手动下载安装')
     }
   }
 
@@ -235,7 +237,11 @@ export function UpdateDialog({
           </div>
         )}
 
-        {errMsg && <p className="update-err">{errMsg}</p>}
+        {errMsg && (
+          <div className="update-err">
+            <span>{errMsg}</span>
+          </div>
+        )}
 
         {phase === 'downloading' ? (
           <div className="update-progress">
@@ -246,7 +252,8 @@ export function UpdateDialog({
           </div>
         ) : (
           <button type="button" className="btn" onClick={onInstall}>
-            <DownloadSimple size={18} weight="bold" /> 立即更新
+            <DownloadSimple size={18} weight="bold" />
+            {errMsg ? '重试下载' : '立即更新'}
           </button>
         )}
 

@@ -1257,7 +1257,16 @@ button:disabled {
   inset: 0;
   z-index: 40;
   display: grid;
-  place-items: center;
+  /*
+   * 用 auto 外边距实现「矮时垂直居中、高时可滚动」：
+   * 之前用 place-items:center，内容超一屏时盒子会上下同时溢出，
+   * 标题被裁掉且滚动条到不了被裁部分（更新弹层带发版说明+错误提示+
+   * 两个按钮时会触发）。align-content:start + .box{margin:auto}
+   * 是 CSS 里处理「居中且可滚动」的标准写法，短弹窗仍然居中。
+   */
+  align-content: start;
+  justify-items: center;
+  overflow-y: auto;
   background: rgba(75, 70, 57, 0.45);
   backdrop-filter: blur(5px);
   padding: 24px;
@@ -1269,6 +1278,8 @@ button:disabled {
   text-align: center;
   width: 100%;
   max-width: 320px;
+  /* 上下 auto：内容不足一屏时垂直居中，超过时从上往下排、整体可滚 */
+  margin: auto 0;
   max-height: calc(100dvh - 48px);
   overflow-y: auto;
   /* 弹窗内部滚动条隐藏（触屏直接滑动） */
@@ -2139,14 +2150,34 @@ button:disabled {
 }
 
 .update-err {
-  text-align: center;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
   font-size: 12.5px;
   font-weight: 800;
-  color: #e14b4b;
-  background: #ffe3e3;
+  line-height: 1.5;
+  color: #c93b3b;
+  background: #fff1f1;
+  border: 1px solid #ffd6d6;
   border-radius: 12px;
-  padding: 8px 14px;
+  padding: 10px 12px;
   margin: 0 0 12px;
+}
+/* 用伪元素画一个 ! 圆点，避免额外的图标依赖 */
+.update-err::before {
+  content: '!';
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: #e14b4b;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
 }
 
 /* 下载进度 */
