@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      品牌色，与前端 src/styles.css 的 :root 变量保持一致。
+      原生侧（窗口背景、状态栏、导航栏、启动图）必须用同一组色值，
+      否则从启动页过渡到 WebView 首帧时会出现颜色跳变。
+      注：XML 注释里不能出现连续两个减号，变量名已写成 cream / green 形式。
+    -->
+    <!-- cream(#fff6ea)：米色纸面，web 的 body 背景 -->
+    <color name="brand_cream">#FFF6EA</color>
+    <!-- green(#58cc02)：品牌绿，theme_color / 图标底色 -->
+    <color name="brand_green">#58CC02</color>
+    <!-- green-d(#46a302)：绿色深一级，按下态 -->
+    <color name="brand_green_dark">#46A302</color>
+    <!-- ink(#4b4639)：正文深棕 -->
+    <color name="brand_ink">#4B4639</color>
+
+    <!--
+      AppCompat 基础主题引用（原 styles.xml 里引用了但项目里没有 colors.xml）。
+      colorPrimary 用品牌绿；状态栏/导航栏颜色由 AppTheme.NoActionBar 单独覆盖，
+      这里的值只影响控件着色，不会顶掉上面的窗口颜色。
+    -->
+    <color name="colorPrimary">#58CC02</color>
+    <color name="colorPrimaryDark">#46A302</color>
+    <color name="colorAccent">#58CC02</color>
+</resources>

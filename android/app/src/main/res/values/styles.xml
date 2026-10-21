@@ -9,14 +9,37 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+    <!--
+      主界面主题。
+      用 DayNight 会让系统深色模式下把窗口背景刷成近黑，而 App 本身是固定的
+      米色粘土风（body 背景 #FFF6EA），切换瞬间会闪一下黑。显式指定 Light。
+      窗口背景与 web 的 body 一致，避免首帧白闪。
+    -->
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/brand_cream</item>
+        <item name="android:statusBarColor">@color/brand_cream</item>
+        <item name="android:navigationBarColor">@color/brand_cream</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
 
-
+    <!--
+      启动画面。
+      这里只做「一张纯色底 + 居中图标」，不引用 @drawable/splash 位图——
+      位图必须按每个机型的屏幕比例准备，缺失的密度目录会回落到 drawable/splash.png
+      （480x320 横图），在竖屏下被拉伸成一个明显错位的色块。
+      改用 windowSplashScreenBackground + windowSplashScreenAnimatedIcon，
+      由系统按当前屏幕密度与形状自行合成，任何机型都不会出现错位。
+    -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/brand_cream</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <!-- 图标在 Android 12+ 会被裁成圆形安全区，加一层品牌绿垫底更饱满 -->
+        <item name="windowSplashScreenIconBackgroundColor">@color/brand_green</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <!-- Android 11 及以下的兜底：只给纯色，不给位图 -->
+        <item name="android:windowBackground">@color/brand_cream</item>
     </style>
 </resources>

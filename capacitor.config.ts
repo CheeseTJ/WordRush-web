@@ -17,6 +17,13 @@ const config: CapacitorConfig = {
   appId: 'top.taojun.eng',
   appName: 'WordRush',
   webDir: 'dist',
+  /**
+   * WebView 底色 = 前端 body 的米色（--cream #FFF6EA）。
+   * Android 15+ 强制 edge-to-edge，WebView 会顶到状态栏/导航栏下面，
+   * 首帧之前、以及 overscroll 回弹时露出的就是这个底色。
+   * 不设的话是系统默认白，与页面米色形成明显色差。
+   */
+  backgroundColor: '#FFF6EA',
   android: {
     // 录音、TTS 全部走 https，混入 http 内容没有意义，一律禁止
     allowMixedContent: false,

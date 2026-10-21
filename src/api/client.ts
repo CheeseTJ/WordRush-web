@@ -6,7 +6,7 @@
  *  - 关卡提交断网时进入本地队列，恢复在线后自动重放
  */
 
-import { authFetch as rawAuthFetch } from './ucenter'
+import { authFetch as rawAuthFetch, savedEmail } from './ucenter'
 import { currentVoice } from '@/data/exp'
 import { apiBase } from '@/platform'
 
@@ -164,9 +164,126 @@ export function pendingCount(): number {
 
 /* ---------- 复习 ---------- */
 
+/**
+ * 每日复习队列的当日缓存。
+ *
+ * 为什么需要：后端的队列是「due_date <= 今天」的实时查询，而每复习一个词
+ * 就会把它的 due_date 推到明天——于是同一天里连续进入复习页，拿到的队列
+ * 会不断缩短、甚至顺序变化，体验上像队列被偷走了。
+ * 但事实上当日到期集合在 00:00 之后就是固定的，变的只是「已复习掉的那部分」。
+ *
+ * 所以缓存两个东西：
+ *   today  —— 首次拉取的完整当日队列（当天不再回源）
+ *   done   —— 当天已经在本地完成（或跳过）的词 id
+ * 展示时用 today 减 done，既保持当日集合稳定，又正确反映复习进度。
+ *
+ * 跨天（按 UTC+8，与后端 chinaDay 一致）自动失效。
+ */
+
+const CACHE_REVIEW = 'wordrush.cache.review'
+
+/** 后端用 UTC+8 判定「今天」，前端必须用同一时区，否则东八区 0-8 点会错位 */
+function cstDay(d = new Date()): string {
+  // 先转成 UTC 毫秒再加 8 小时，然后取 UTC 日期部分——不受运行设备时区影响
+  const shifted = new Date(d.getTime() + 8 * 3600 * 1000)
+  return shifted.toISOString().slice(0, 10)
+}
+
+/** 缓存按账号隔离：换账号登录不应看到上一个人的复习队列 */
+function reviewCacheKey(): string {
+  return `${CACHE_REVIEW}:${savedEmail() || 'anon'}`
+}
+
+interface ReviewCache {
+  /** 缓存所属日期（UTC+8 的 YYYY-MM-DD） */
+  day: string
+  /** 首次拉取时的完整队列（顺序即当时的优先级） */
+  today: string[]
+  /** 当天已完成（记住了/再记记/跳过）的词 id */
+  done: string[]
+}
+
+function readReviewCache(day: string): ReviewCache | null {
+  const c = lsJSON<ReviewCache | null>(reviewCacheKey(), null)
+  // 跨天即作废：不删也行，但留着只会占空间且容易误读
+  if (!c || c.day !== day || !Array.isArray(c.today)) return null
+  return c
+}
+
+function writeReviewCache(c: ReviewCache): void {
+  lsSetJSON(reviewCacheKey(), c)
+}
+
+/** 从缓存里剔除已完成的词，得到"当前还应显示的队列" */
+function pendingFromCache(c: ReviewCache): string[] {
+  if (!c.done.length) return c.today
+  const done = new Set(c.done)
+  return c.today.filter((id) => !done.has(id))
+}
+
+/**
+ * 拉取今日复习队列。
+ *
+ * 分批语义：后端每次最多返回 limit 个（按 due_date / 错误次数排序）。
+ * 当天到期词可能远超 limit，所以「一批复习完」不等于「今天复习完了」。
+ *
+ * 实现：
+ *  1. 有当日缓存且还有 pending（today 减 done）→ 直接用，不回源；
+ *  2. pending 为空 → 回源取下一批，并把新词**合并**进 today；
+ *  3. 回源若返回的词全在 today 里（说明后端还在按同一排序给已复习过的词），
+ *     把 done 清空重来是错的——正确做法是本次就到此为止，返回空，
+ *     由页面显示「今日已完成」。绝不能把刚复习过的词再发一遍。
+ */
 export async function fetchReviewQueue(limit = 20): Promise<string[]> {
-  const data = await authFetch<{ word_ids: string[]; total: number }>(`/api/v1/review?limit=${limit}`)
-  return data.word_ids
+  const day = cstDay()
+  const cached = readReviewCache(day)
+
+  if (cached) {
+    const pending = pendingFromCache(cached)
+    if (pending.length) return pending.slice(0, limit)
+  }
+
+  // 把当天已完成 + 已见过的词都排除掉，让后端真正返回「下一批」。
+  // 只排 done 不够：pending 为空时 today 里可能还有已展示但未标记的词。
+  const known = cached?.today ?? []
+  const done = cached?.done ?? []
+  const exclude = [...new Set([...known, ...done])]
+  const qs = `limit=${limit}${exclude.length ? `&exclude=${encodeURIComponent(exclude.join(','))}` : ''}`
+
+  const data = await authFetch<{ word_ids: string[]; total: number }>(`/api/v1/review?${qs}`)
+
+  const knownSet = new Set(known)
+  const doneSet = new Set(done)
+  const fresh = data.word_ids.filter((id) => !knownSet.has(id) && !doneSet.has(id))
+
+  if (fresh.length) writeReviewCache({ day, today: [...known, ...fresh], done })
+
+  return fresh.slice(0, limit)
+}
+
+/**
+ * 把复习结果写进当日缓存的「已完成」集合。
+ *
+ * 必须在 postReviewResults 成功或失败之后都调用：本地已完成状态代表
+ * "用户已经复习过这张卡"，与网络是否成功无关；否则断网时会重复复习同一批词。
+ */
+export function markReviewDone(wordIds: string[]): void {
+  if (!wordIds.length) return
+  const day = cstDay()
+  const cached = readReviewCache(day)
+  if (!cached) return // 没有当日缓存就无从记录，下次进页面直接回源即可
+  const done = new Set(cached.done)
+  for (const id of wordIds) done.add(id)
+  writeReviewCache({ ...cached, done: [...done] })
+}
+
+/** 手动清掉当日缓存（「刷新队列」按钮用：确实想按最新到期情况重取） */
+export function clearReviewCache(): void {
+  try {
+    localStorage.removeItem(reviewCacheKey())
+  } catch {
+    /* 隐私模式下降级 */
+  }
 }
 
 export async function postReviewResults(results: WordResult[]): Promise<void> {

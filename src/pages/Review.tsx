@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { findWordAsync } from '@/data/vocab'
 import type { Word } from '@/data/vocab'
-import { fetchReviewQueue, postReviewResults } from '@/api/client'
+import { fetchReviewQueue, postReviewResults, markReviewDone, clearReviewCache } from '@/api/client'
 import { useApp } from '@/state/store'
 import { confetti, toast, buzz } from '@/ui'
 
 const QUEUE_LIMIT = 10
 
-/** 复习页：错题闪卡。队列来自服务端 word_stats，异步映射回词库内容 */
+/** 复习页：错题闪卡。队列来自服务端 word_stats，异步映射回词库内容
+ *  队列按天缓存（见 api/client.ts 的 fetchReviewQueue）：当天集合固定，
+ *  复习过的词由 markReviewDone 从本地缓存剔除，不重新回源。 */
 export default function Review() {
   const { refresh } = useApp()
   const [queue, setQueue] = useState<Word[]>([])
@@ -56,6 +58,9 @@ export default function Review() {
     } catch {
       /* 复习结果同步失败不打断流程 */
     }
+    // 本地缓存同步标记已完成：无论上一步成功与否，用户确实复习过这张卡，
+    // 当天再进复习页不应该又看到它
+    markReviewDone([word.id])
     setTimeout(() => {
       setFly(null)
       setFlipped(false)
@@ -64,11 +69,27 @@ export default function Review() {
     }, 430)
   }
 
-  function restart() {
+  /** 清掉当日缓存并按服务端最新到期情况重新拉取（「刷新队列」用） */
+  function reloadQueue() {
+    clearReviewCache()
     setRi(0)
     setKnown(0)
     setFinished(false)
     setFlipped(false)
+    setState('loading')
+    void (async () => {
+      try {
+        const ids = await fetchReviewQueue(QUEUE_LIMIT)
+        const words = (await Promise.all(ids.map((id) => findWordAsync(id)))).filter(
+          (w): w is Word => !!w,
+        )
+        setQueue(words)
+        setState(words.length ? 'ready' : 'empty')
+        void refresh()
+      } catch {
+        setState('offline')
+      }
+    })()
   }
 
   if (state === 'loading')
@@ -114,14 +135,7 @@ export default function Review() {
                 <span>
                   记住了 {known} / {queue.length} 张
                 </span>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => {
-                    restart()
-                    void refresh()
-                  }}
-                >
+                <button type="button" className="btn" onClick={reloadQueue}>
                   刷新队列
                 </button>
               </div>
