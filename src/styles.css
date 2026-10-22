@@ -1098,9 +1098,15 @@ button:disabled {
 .prof {
   flex: 1;
   overflow-y: auto;
-  /* 底部留白 = 胶囊高 58 + 底距 12 + 与胶囊的呼吸间隔 26 ≈ safe-bottom + 96。
-     太小会让「退出登录」贴着胶囊，太大则滚到底时最后一张卡片上方空一大段。 */
-  padding: 18px 20px calc(var(--safe-bottom) + 96px);
+  /*
+   * 底部留白 = 悬浮胶囊占位 + 与胶囊的视觉呼吸。
+   *
+   * 关键：.btn 用的是「实心投影」（box-shadow: 0 6px 0），它是画在盒子外面、
+   * 参与视觉占位但不进布局的。只算 padding=-bottom 96 时，滚到底后
+   * 盒底距胶囊 7px，扣掉 6px 投影后实际只剩 1px —— 看起来就是贴着胶囊。
+   * 所以额外 +14，给投影留出空间后再留 14px 真实间隙。
+   */
+  padding: 18px 20px calc(var(--safe-bottom) + 110px);
   scrollbar-width: none;
 }
 /*
@@ -1283,20 +1289,25 @@ button:disabled {
   position: fixed;
   inset: 0;
   z-index: 40;
-  display: grid;
   /*
-   * 用 auto 外边距实现「矮时垂直居中、高时可滚动」：
-   * 之前用 place-items:center，内容超一屏时盒子会上下同时溢出，
-   * 标题被裁掉且滚动条到不了被裁部分（更新弹层带发版说明+错误提示+
-   * 两个按钮时会触发）。align-content:start + .box{margin:auto}
-   * 是 CSS 里处理「居中且可滚动」的标准写法，短弹窗仍然居中。
+   * flex + 子项 margin:auto 实现「内容矮时居中、内容高时可滚动」。
+   *
+   * 之前用 grid 的 align-content:start，弹窗会贴到屏幕顶部（居中失效）；
+   * 但改回 place-items:center 又会在内容超一屏时上下同时溢出、标题被裁。
+   * flex 方案两者兼顾：容器可滚动，子项 margin:auto 在空间不足时自动归零，
+   * 于是矮内容居中、高内容从顶部排并整体可滚。
    */
-  align-content: start;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  /* 滚动条隐藏（触屏直接滑动）；滚动由本容器承担，见 .box 的注释 */
+  scrollbar-width: none;
   background: rgba(75, 70, 57, 0.45);
   backdrop-filter: blur(5px);
   padding: 24px;
+}
+.fill::-webkit-scrollbar {
+  display: none;
 }
 .fill .box {
   background: #fff;
@@ -1305,12 +1316,16 @@ button:disabled {
   text-align: center;
   width: 100%;
   max-width: 320px;
-  /* 上下 auto：内容不足一屏时垂直居中，超过时从上往下排、整体可滚 */
-  margin: auto 0;
-  max-height: calc(100dvh - 48px);
-  overflow-y: auto;
-  /* 弹窗内部滚动条隐藏（触屏直接滑动） */
-  scrollbar-width: none;
+  /* 四边 auto：水平居中，垂直在空间富余时居中、不足时归零（配合 .fill 可滚） */
+  margin: auto;
+  /*
+   * ⚠️ 不要设 max-height / overflow-y。
+   * 之前这里写 max-height: calc(100dvh - 48px) + overflow-y:auto，配合外层
+   * margin:auto 会导致：盒子被压到一屏高，内容却仍按自然高度渲染（实测
+   * 内容 1742px、盒子 796px），滚动条挂在盒子上、而盒子本身又被居中放置，
+   * 结果底部按钮滚不到。
+   * 正确做法是让盒子按内容自然撑高，由 .fill 承担滚动。
+   */
   box-shadow: 0 14px 0 rgba(0, 0, 0, 0.1);
   animation: popIn 0.5s var(--spr);
   /* 更新弹层的关闭按钮用绝对定位挂在本容器上 */
@@ -1374,6 +1389,15 @@ button:disabled {
   background: var(--green);
   box-shadow: 0 6px 0 var(--green-d);
   transition: transform 0.12s, box-shadow 0.12s;
+  /*
+   * 按钮内可能是「图标 + 文字」（如更新弹层的下载图标）。
+   * 不设 flex 时它们是普通内联内容：图标带固定宽高，会和文字各自换行，
+   * 真机上看起来像多出一个独立的小方块按钮。用 flex 居中对齐后再留 gap。
+   */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .btn:active {
   transform: translateY(6px);
@@ -2138,14 +2162,17 @@ button:disabled {
   height: 32px;
   border: 0;
   border-radius: 11px;
-  background: #f6f1e7;
-  color: var(--ink-soft);
+  background: #f1e9dc;
+  /* 用正文色而不是 ink-soft：这个按钮要能一眼看见，
+     太浅会让人以为它只是装饰、不知道该点哪里关掉 */
+  color: var(--ink);
   display: grid;
   place-items: center;
   cursor: pointer;
 }
 .update-close:active {
-  background: var(--line);
+  background: var(--line-d);
+  transform: scale(0.94);
 }
 
 /* 发版说明：可滚动，避免长说明把按钮挤出屏幕 */
@@ -2164,14 +2191,21 @@ button:disabled {
   font-weight: 700;
   line-height: 1.55;
   color: var(--ink);
+  /* 悬挂缩进：圆点用绝对定位挂在左外侧，正文统一从 14px 起排。
+     用 ::before 的内联方式做不到——长条目换行后第二行会顶回最左边，
+     和圆点错开，看起来像没对齐的段落。 */
+  position: relative;
+  padding-left: 14px;
 }
 .update-notes p:last-child {
   margin-bottom: 0;
 }
-/* 常见写法是「1. xxx / - xxx / · xxx」，统一缩进成列表观感 */
+/* 常见写法是「1. xxx / - xxx / · xxx」，统一渲染成圆点列表 */
 .update-notes p::before {
   content: '·';
-  margin-right: 6px;
+  position: absolute;
+  left: 2px;
+  top: 0;
   color: var(--green);
   font-weight: 900;
 }
