@@ -1090,6 +1090,20 @@ button:disabled {
   padding: 18px 20px 20px;
   scrollbar-width: none;
 }
+/*
+ * 滚动时内容会在 HUD 下沿被硬切：HUD 是透明的，卡片透出来只剩一半，
+ * 看起来像渲染错误。这里在滚动区顶部画一层从页面底色到透明的渐变，
+ * 让被切的内容自然淡出。
+ *
+ * 关键：只在「已经向下滚动」时启用（.scrolled 由 Me.tsx 的 scroll 监听加）。
+ * 若是无条件启用，页面停在顶部时第一张卡片也会被遮住一角，
+ * 反而凭空造出一个「被裁切」的假象。
+ */
+.prof.scrolled {
+  --edge-fade: 16px;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--edge-fade));
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--edge-fade));
+}
 .prof::-webkit-scrollbar {
   display: none;
 }

@@ -21,6 +21,8 @@ export default function Me() {
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [gamify, setGamify] = useState(gamifyEnabled())
   const [previewing, setPreviewing] = useState<string | null>(null)
+  /** 滚动区是否已向下滚动：用于给顶部加淡出遮罩，避免内容在 HUD 下沿被硬切 */
+  const [scrolled, setScrolled] = useState(false)
   const activeBook = BOOKS.find((b) => b.id === bookId) ?? BOOKS[0]
 
   async function preview(id: string) {
@@ -60,8 +62,17 @@ export default function Me() {
   }
 
   return (
-    <div className="view">
-      <div className="prof">
+    <div
+      className="view"
+    >
+      <div
+        className={`prof${scrolled ? ' scrolled' : ''}`}
+        onScroll={(e) => {
+          // 只在跨越阈值时 setState，避免每帧都触发重渲染
+          const top = e.currentTarget.scrollTop
+          if (top > 4 !== scrolled) setScrolled(top > 4)
+        }}
+      >
         <div className="me stg" style={{ ['--d' as string]: 0 }}>
           <div className="avatar" onClick={swapPet} role="button" aria-label="换头像">
             🐣
