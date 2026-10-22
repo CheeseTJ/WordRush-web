@@ -147,7 +147,14 @@ export default function Me() {
               </span>
               游戏化元素
             </div>
-            <span className="arr">{gamify ? '宝箱 / 红心 / 任务 · 开' : '关'}</span>
+            <span className="arr">
+              {/* 顶部 HUD 已移除：连续天数与红心在这里补上，避免信息丢失 */}
+              <span className="gamify-meta">
+                🔥 {profile.streak_days ?? 0} 天
+                {gamify ? ` · ❤️ ${profile.hearts ?? 5}/5` : ''}
+              </span>
+              {gamify ? ' · 开' : ' · 关'}
+            </span>
           </button>
           {/* 检查更新：只在原生 App 内渲染（UpdateRow 自己判定并返回 null） */}
           <UpdateRow />

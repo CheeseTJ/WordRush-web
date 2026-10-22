@@ -214,6 +214,9 @@ button:disabled {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
+  /* 注意：这里不补 dock 的留白。地图页的 .map-foot 是滚动区之外的固定行，
+     已由它自己的 padding-bottom 抬到胶囊上方；滚动区若再加 96px，
+     会在树底部和 foot 之间多出一段无法滚动的空白。 */
 }
 .map-scroll::-webkit-scrollbar {
   display: none;
@@ -882,6 +885,10 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-top: 16px;
+  /* 悬浮 dock 浮在内容之上：给按钮留出胶囊的高度，否则会被压住。
+     .revp 是 flex:1 + overflow:hidden，加 padding 只会压缩内容区，
+     改动按钮自身的外边距才是有效的做法。 */
+  margin-bottom: calc(var(--safe-bottom) + 88px);
 }
 .rbtn {
   border: 0;
@@ -1087,7 +1094,8 @@ button:disabled {
 .prof {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px 20px;
+  /* 底部留白给悬浮 dock，滚到底时最后一张卡片不会被胶囊压住 */
+  padding: 18px 20px calc(var(--safe-bottom) + 96px);
   scrollbar-width: none;
 }
 /*

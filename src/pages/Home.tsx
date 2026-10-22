@@ -1,81 +1,23 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Barbell, ChatCircleText, Flame, Heart, House, Lightning, User } from '@phosphor-icons/react'
-import { useApp } from '@/state/store'
+import { type ReactNode } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Barbell, ChatCircleText, House, User } from '@phosphor-icons/react'
 import { Sidebar } from '@/components/Sidebar'
-import { gamifyEnabled } from '@/data/exp'
 
-/** XP/连胜数字滚动：目标值变化时缓动追赶（demo 同款） */
-function useTick(target: number): number {
-  const [shown, setShown] = useState(target)
-  const prevRef = useRef(target)
-  useEffect(() => {
-    const from = prevRef.current
-    if (from === target) return
-    prevRef.current = target
-    const t0 = performance.now()
-    const dur = 900
-    let raf = 0
-    const f = (t: number) => {
-      const p = Math.min((t - t0) / dur, 1)
-      setShown(Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3))))
-      if (p < 1) raf = requestAnimationFrame(f)
-    }
-    raf = requestAnimationFrame(f)
-    return () => cancelAnimationFrame(raf)
-  }, [target])
-  return shown
-}
-
-/** 应用壳：HUD + 主内容区 + 右侧信息栏（平板/桌面）+ dock（手机底部/桌面侧栏）
- *  答题/情景对话页全屏沉浸：隐藏 HUD 与 dock */
+/** 应用壳：主内容区 + 右侧信息栏（平板/桌面）+ 悬浮 dock
+ *  答题/情景对话页全屏沉浸：隐藏 dock
+ *
+ *  顶部 HUD 已移除：连续天数/XP 在「我的」页与侧栏本就有完整展示，
+ *  顶部常驻一栏既挤占空间，又让下方滚动区在它下沿被硬切（HUD 透明，
+ *  卡片滚过时只剩半截）。去掉后页面从屏幕顶部开始，滚动区更完整。
+ *  红心与连续天数收进「我的」页的游戏化元素行。 */
 export default function Home() {
-  const { profile, pending } = useApp()
-  const nav = useNavigate()
   const loc = useLocation()
   const immersive = loc.pathname.startsWith('/quiz/') || loc.pathname.startsWith('/story/')
   // 我的页自带近 14 天图表，侧栏的 7 天周图在该页会与之重复，用类名在该页隐藏
   const onMe = loc.pathname === '/me'
-  const shownXp = useTick(profile.xp)
-  const shownStreak = useTick(profile.streak_days)
-  const hearts = profile.hearts ?? 5
 
   return (
     <div className={`app${immersive ? ' immersive' : ''}${onMe ? ' on-me' : ''}`}>
-      {!immersive && (
-        <header className="hud stg" style={{ ['--d' as string]: 0 }}>
-          {gamifyEnabled() && (
-            <button
-              type="button"
-              className="pill hearts"
-              title={hearts >= 5 ? '红心已满' : '每 30 分钟恢复 1 颗红心'}
-              onClick={() => nav('/map')}
-            >
-              <Heart weight="fill" size={16} style={{ color: hearts > 0 ? 'var(--coral)' : '#cbc4b6' }} />
-              <span className="num">{hearts}</span>/5
-            </button>
-          )}
-          <button
-            type="button"
-            className="pill streak"
-            title="连续学习天数"
-            onClick={() => nav('/me')}
-          >
-            <Flame weight="fill" size={16} style={{ color: '#FF9600' }} />
-            <span className="num">{shownStreak}</span> 天
-          </button>
-          {pending > 0 && (
-            <span className="pill" title="有离线成绩待同步" style={{ color: 'var(--coral-d)' }}>
-              <span className="pending-dot" /> {pending}
-            </span>
-          )}
-          <span className="pill xp">
-            <Lightning weight="fill" size={16} style={{ color: 'var(--yellow-d)' }} />
-            <span className="num">{shownXp}</span> XP
-          </span>
-        </header>
-      )}
-
       <div className="main-area">
         <Outlet />
       </div>
