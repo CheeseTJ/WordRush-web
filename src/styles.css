@@ -215,12 +215,17 @@ button:disabled {
   overflow-x: hidden;
   scrollbar-width: none;
   /*
-   * 底部留白 = 悬浮目标卡占位 + 悬浮胶囊占位。
-   * 滚动区现在铺满全屏（不再被 bottom 裁短），所以必须用 padding 把内容
-   * 顶起来，否则树滚到底时会被浮动层遮住。
-   * 数值与 .app 上的 --map-foot-h 一致，两者改一处要同步。
+   * 顶部补安全区：HUD 移除后，树会直接顶到状态栏下方，与时间/电量重叠。
+   * inset:0 的 absolute 容器不继承父级 padding，必须在这里自己加。
+   *
+   * 底部留白 = 悬浮目标卡占位 + 悬浮胶囊占位 + dock 下方的安全区。
+   * 最后一项不能省：dock 用 bottom: 0 + margin 定位，它的下沿到屏幕底部
+   * 之间还有 --safe-bottom 的空隙；滚动区若只留到 --map-foot-h，
+   * 树就会从 dock 下方那道缝里露出来。
+   * 数值与 .app 上的 --map-foot-h 联动，改一处要同步。
    */
-  padding-bottom: var(--map-foot-h);
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--map-foot-h) + var(--safe-bottom));
 }
 .map-scroll::-webkit-scrollbar {
   display: none;
@@ -771,7 +776,8 @@ button:disabled {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 6px 22px 16px;
+  /* 顶部补安全区（HUD 移除后无人代劳），底部留给悬浮胶囊 */
+  padding: calc(var(--safe-top) + 6px) 22px 16px;
   overflow: hidden;
 }
 .revhead {
@@ -1099,14 +1105,11 @@ button:disabled {
   flex: 1;
   overflow-y: auto;
   /*
-   * 底部留白 = 悬浮胶囊占位 + 与胶囊的视觉呼吸。
-   *
-   * 关键：.btn 用的是「实心投影」（box-shadow: 0 6px 0），它是画在盒子外面、
-   * 参与视觉占位但不进布局的。只算 padding=-bottom 96 时，滚到底后
-   * 盒底距胶囊 7px，扣掉 6px 投影后实际只剩 1px —— 看起来就是贴着胶囊。
-   * 所以额外 +14，给投影留出空间后再留 14px 真实间隙。
+   * 顶部补安全区：移除 HUD 后 .hud 不再是"把内容推到状态栏下方"的那个人，
+   * 这里必须自己带上 --safe-top，否则头像与时间/电量重叠。
+   * 底部留白 = 悬浮胶囊 + 实心投影的额外占位。
    */
-  padding: 18px 20px calc(var(--safe-bottom) + 110px);
+  padding: calc(var(--safe-top) + 18px) 20px calc(var(--safe-bottom) + 110px);
   scrollbar-width: none;
 }
 /*

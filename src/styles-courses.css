@@ -73,7 +73,9 @@
      .view 默认 flex:1 会把纸拉成整屏，内容少时下方空一大片，失去「一张纸」的观感。 */
   flex: 0 1 auto;
   max-height: calc(100% - 22px);
-  margin: 10px 12px 12px;
+  /* 顶部外边距里带上安全区：这是「浮在页面上的纸」，用 margin 保持纸面完整，
+     不用 padding（否则纸的边框会被顶进状态栏区） */
+  margin: calc(var(--safe-top) + 10px) 12px 12px;
   padding: 12px 14px 16px;
   gap: 10px;
   overflow-y: auto;

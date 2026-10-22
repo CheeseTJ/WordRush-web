@@ -4,7 +4,8 @@
 /* ==================== 场景选择页（/scenarios） ==================== */
 
 .scn-picker {
-  padding: 14px 16px 16px;
+  /* 顶部补安全区：HUD 移除后页面直接从屏幕顶开始，标题会与时间/电量重叠 */
+  padding: calc(var(--safe-top) + 14px) 16px 16px;
   gap: 10px;
   overflow-y: auto;
 }
