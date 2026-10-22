@@ -3,22 +3,40 @@
  * 端差异布局在此；组件样式在 styles.css，平板 tablet.css，桌面 desktop.css
  * ============================================================ */
 
+/*
+ * 分层模型（与你描述的一致）：
+ *   .app        铺满整个屏幕（含状态栏/导航栏区域），是唯一的「画布」
+ *   .main-area  铺满 .app，页面内容在里面自然滚动
+ *   .map-foot / .dock   absolute 浮在画布上层，与内容同层级互不占位
+ *
+ * 关键：.app 不再是 flex 容器。改成 flex 会让 foot/dock 变成流内子项，
+ * 它们就会挤压内容区、并在边缘留下生硬的空白带；分层布局下它们必须
+ * 完全脱离文档流。内容的底部留白改由各滚动容器自己加（padding-bottom）。
+ *
+ * 状态栏区域不加任何底色：WebView 铺满 + 系统栏透明（见 MainActivity），
+ * 网页的渐变背景自然画到屏幕顶端，与状态栏无缝。
+ */
 .app {
   height: 100dvh;
   max-width: 520px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; /* 外部 layout：固定视口，内部各滚动区自行滚动 */
+  overflow: hidden; /* 页面内部各自滚动，画布本身不动 */
   position: relative;
+  /*
+   * 悬浮元素共享尺寸，集中定义在画布上供各层引用。
+   * 自定义属性不会向兄弟节点查找，必须定义在共同祖先。
+   */
+  --dock-gap: calc(var(--safe-bottom) + 84px);
+  /* 地图页底部浮层总占位：.map-foot 的 bottom(104) + 卡片自身高度(约 104)
+     + 8 余量。滚动区用它做 padding-bottom，保证树不会从卡片下方露出来。
+     注意与 .map-foot 的 bottom 值联动，改一处要同步另一处。 */
+  --map-foot-h: calc(var(--safe-bottom) + 216px);
 }
 
-/* 主内容区：所有页面（Outlet）的定位容器
- * dock 是 absolute 悬浮在内容之上，本层不再需要为它预留 padding。 */
+/* 页面内容层：铺满画布，内部各自滚动 */
 .main-area {
-  position: relative;
-  flex: 1;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
 }
@@ -29,19 +47,20 @@
 }
 
 /* 底部悬浮行：笑脸 + 今日目标卡
- * dock 改为 absolute 悬浮在屏幕底部后，这行不能再贴着底边（会被胶囊压住）。
- * 用 margin-bottom 而不是 padding-bottom：.map-foot 是 flex 子项且
- * margin-top:auto，padding 只会把 row 挤在自身盒子里、整体仍贴底；
- * 外边距才真正把这行顶到胶囊上方。
- * 胶囊高约 58 + 底距 (safe-bottom + 12) + 12 呼吸 ≈ safe-bottom + 82。 */
+ *
+ * absolute 浮在 .app 上（与内容同层级，不占文档流），位于 dock 胶囊正上方。
+ * 之前是流内的 flex 子项 + margin-top:auto，那会和 absolute 的 dock 分属
+ * 两套定位体系，边缘对齐永远差几像素；统一成同一层后位置只由 bottom 决定。
+ *
+ * bottom = 胶囊占位（--dock-gap 84）+ 卡片自身高度补偿。
+ * 卡片里的 mascot 会向下溢出约 17px（投影 + 基线对齐），所以底部再 +20。
+ */
 .map-foot {
-  position: relative;
-  z-index: 2;
-  flex: 0 0 auto;
-  /* margin-top:auto 把整行推到底部；margin-bottom 再把它抬到悬浮胶囊上方。
-     auto 吃掉上方剩余空间，底部固定边距生效，两者可以共存。 */
-  margin-top: auto;
-  margin-bottom: calc(var(--safe-bottom) + 118px);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 104px);
+  z-index: 5;
   padding: 0 20px;
 }
 .foot-row {

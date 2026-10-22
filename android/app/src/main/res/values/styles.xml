@@ -13,16 +13,23 @@
       主界面主题。
       用 DayNight 会让系统深色模式下把窗口背景刷成近黑，而 App 本身是固定的
       米色粘土风（body 背景 #FFF6EA），切换瞬间会闪一下黑。显式指定 Light。
-      窗口背景与 web 的 body 一致，避免首帧白闪。
+
+      ⚠️ 这里【不设】statusBarColor / navigationBarColor / windowBackground：
+      WebView 已铺满全屏（含状态栏区域），系统栏必须是透明的，网页的渐变背景
+      才能一直画到屏幕顶端。之前写 @color/brand_cream 会让状态栏区域被刷成
+      一块纯米色，与下方渐变形成一道可见的接缝——那正是「任务栏有底色」的来源。
+      透明由 MainActivity 在 setContentView 之后显式设置（主题里的值会在
+      窗口 attach 后被重新应用，只改主题不够）。
     -->
     <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
-        <item name="android:windowBackground">@color/brand_cream</item>
-        <item name="android:statusBarColor">@color/brand_cream</item>
-        <item name="android:navigationBarColor">@color/brand_cream</item>
+        <!-- 系统栏图标用深色（浅色页面背景），与 App 固定的浅色主题一致 -->
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
+        <!-- 首帧兜底底色：WebView 画出第一帧前会短暂露出，用页面同色避免白闪。
+             它只影响「还没有内容」的那一瞬间，不影响系统栏透明。 -->
+        <item name="android:windowBackground">@color/brand_cream</item>
     </style>
 
     <!--

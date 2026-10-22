@@ -30,49 +30,55 @@ import com.getcapacitor.BridgeActivity;
  */
 public class MainActivity extends BridgeActivity {
 
-    /** 与 res/values/colors.xml 的 brand_cream 一致 */
-    private static final int BRAND_CREAM = Color.parseColor("#FFF6EA");
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 让内容延伸到系统栏区域，边距由下面的 insets 监听补
+        // 让内容延伸到系统栏区域（Android 15+ 本来也强制如此）
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
-        // 系统栏透明：底下露出的就是窗口背景（已设为米色）
+        // 系统栏必须真正透明：主题里写的 @color/brand_cream 会在窗口 attach 后
+        // 重新生效，这里必须在 setContentView 之后覆盖（super.onCreate 已完成）。
         getWindow().setStatusBarColor(Color.TRANSPARENT);
         getWindow().setNavigationBarColor(Color.TRANSPARENT);
-        // 兜底：部分 ROM 在透明状态下仍会画一层默认色
-        getWindow().getDecorView().setBackgroundColor(BRAND_CREAM);
+        // 去掉 windowBackground 的兜底色，避免任何缝隙露出纯色。
+        // 用 null 而不是 transparent color：部分 ROM 会把 transparent 当成
+        // 「不绘制」，反而回退到系统默认白。
+        getWindow().setBackgroundDrawable(null);
+        getWindow().getDecorView().setBackgroundColor(Color.TRANSPARENT);
 
         // App 固定浅色主题，系统栏图标必须是深色才看得清
         var controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         controller.setAppearanceLightStatusBars(true);
         controller.setAppearanceLightNavigationBars(true);
 
-        // 关键：WebView 本身【不加 padding】，让它铺满整个屏幕（含状态栏区域），
-        // 这样网页的渐变背景会一直画到屏幕顶端，与状态栏无缝融合。
-        // 安全区数值改为通过 CSS 变量下发给网页，由网页自己给内容留出边距——
-        // 给 WebView 加 padding 会让背景从状态栏下方才开始画，造成顶部一条色带。
+        // WebView 铺满全屏（含状态栏/导航栏区域），让网页的渐变背景一直画到屏幕顶端。
+        //
+        // 安全区数值通过 CSS 变量下发给网页，由网页自己给内容留边距——
+        // 给 WebView 加 padding 会让背景从状态栏下方才开始画，顶部出现纯色带。
+        //
+        // ⚠️ 监听器必须挂在 decorView 而不是 WebView 上，且返回原样 insets：
+        // 之前挂在 WebView 上并返回 CONSUMED，会把这批 insets 消耗掉，
+        // WebView 内部拿不到真实安全区（env(safe-area-inset-*) 恒为 0）。
         View webView = findViewById(R.id.webview);
         if (webView == null) {
             webView = findViewById(android.R.id.content);
         }
         final WebView target = webView instanceof WebView ? (WebView) webView : null;
-        ViewCompat.setOnApplyWindowInsetsListener(webView, (v, windowInsets) -> {
+
+        View decor = getWindow().getDecorView();
+        ViewCompat.setOnApplyWindowInsetsListener(decor, (v, windowInsets) -> {
             Insets bars = windowInsets.getInsets(
                     WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
 
-            // 单位换算：px → CSS px（dp）。WebView 的 CSS 像素按 density 缩放，
-            // 不做换算的话在高密度屏上边距会偏大几倍。
+            // px → CSS px（dp）：WebView 的 CSS 像素按 density 缩放
             float density = getResources().getDisplayMetrics().density;
             int top = Math.round(bars.top / density);
             int bottom = Math.round(bars.bottom / density);
             int left = Math.round(bars.left / density);
             int right = Math.round(bars.right / density);
 
-            // 注入 CSS 变量。网页侧用 var(--safe-top) 等消费，缺省 0px。
+            // 注入 CSS 变量；网页侧用 var(--safe-top) 等消费
             String js = String.format(
                     "(function(){var s=document.documentElement.style;"
                             + "s.setProperty('--safe-top','%dpx');"
@@ -85,8 +91,8 @@ public class MainActivity extends BridgeActivity {
                 target.post(() -> target.evaluateJavascript(js, null));
             }
 
-            // 不消费 insets：让 WebView 继续铺满，同时也别让系统再给我们加内边距
-            return WindowInsetsCompat.CONSUMED;
+            // 原样返回，不消耗：让 WebView 也能拿到 insets
+            return windowInsets;
         });
     }
 }

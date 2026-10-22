@@ -207,16 +207,20 @@ button:disabled {
    HUD 下沿拉出一条横向色差分界线。
    滚动区自身透明，透出 body 背景即可。 */
 .map-scroll {
-  /* 滚动区：absolute 铺满 view，树在这层滚 */
+  /* 滚动区：铺满整个画布，树在这层滚（foot / dock 都浮在它之上） */
   position: absolute;
   inset: 0;
   z-index: 1;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
-  /* 注意：这里不补 dock 的留白。地图页的 .map-foot 是滚动区之外的固定行，
-     已由它自己的 padding-bottom 抬到胶囊上方；滚动区若再加 96px，
-     会在树底部和 foot 之间多出一段无法滚动的空白。 */
+  /*
+   * 底部留白 = 悬浮目标卡占位 + 悬浮胶囊占位。
+   * 滚动区现在铺满全屏（不再被 bottom 裁短），所以必须用 padding 把内容
+   * 顶起来，否则树滚到底时会被浮动层遮住。
+   * 数值与 .app 上的 --map-foot-h 一致，两者改一处要同步。
+   */
+  padding-bottom: var(--map-foot-h);
 }
 .map-scroll::-webkit-scrollbar {
   display: none;
@@ -1094,7 +1098,8 @@ button:disabled {
 .prof {
   flex: 1;
   overflow-y: auto;
-  /* 底部留白给悬浮 dock，滚到底时最后一张卡片不会被胶囊压住 */
+  /* 底部留白 = 胶囊高 58 + 底距 12 + 与胶囊的呼吸间隔 26 ≈ safe-bottom + 96。
+     太小会让「退出登录」贴着胶囊，太大则滚到底时最后一张卡片上方空一大段。 */
   padding: 18px 20px calc(var(--safe-bottom) + 96px);
   scrollbar-width: none;
 }
