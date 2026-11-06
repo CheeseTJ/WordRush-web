@@ -3,7 +3,8 @@ name: Release APK
 # 打 tag（v1.2.0）时：构建前端 → 同步进安卓壳 → 出正式签名 APK → 建 GitHub Release。
 #
 # ⚠️ 本工作流【不上传蒲公英】。
-#    上传由 CICD 控制台（/home/ubuntu/code/CICD）统一负责：它轮询 GitHub Release，
+#    上传由 CICD 控制台（容器 cicd-console，源码 /home/ubuntu/code/CICD）统一负责：
+#    它轮询 GitHub Release，
 #    发现新 tag 就把 APK 传到蒲公英。这样蒲公英 API Key 只存在服务器一处，
 #    新增项目也不用复制一整套 workflow。
 #    因此这里只需保证「Release 里有一个带 versionCode 的正式签名 APK」。
