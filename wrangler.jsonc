@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wordrush-web",
+  "account_id": "1b53bebb48213cfdf6e43cd71d931741",
+  "compatibility_date": "2026-06-01",
+  "assets": {
+    "directory": "dist",
+    // React Router，未经定义路径回退到 index.html
+    "not_found_handling": "single-page-application"
+  },
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "eng.taojun.top", "custom_domain": true }
+  ]
+}
